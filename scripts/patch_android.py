@@ -32,8 +32,7 @@ val keystoreProps = Properties().apply { val f = rootProject.file("key.propertie
         s = re.sub(r'signingConfig\s*=\s*signingConfigs\.getByName\("debug"\)', 'signingConfig = signingConfigs.getByName("release")\n            isMinifyEnabled = true\n            isShrinkResources = true\n            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")', s)
     else:
         print("WARN: Groovy gradle detected; add signing manually per docs/ANDROID_SIGNING.md")
-if "debugSymbolLevel" not in s and kts:
-    s = s.replace("defaultConfig {", 'defaultConfig {\n        ndk { debugSymbolLevel = "FULL" }', 1)
+# Keep debug APK builds lean; native symbol bundles are configured only for signed release builds.
 p.write_text(s)
 base = p.parent.parent  # android/app -> android
 (p.parent / "proguard-rules.pro").write_text("-keep class io.flutter.** { *; }\n-dontwarn com.google.android.play.core.**\n")
