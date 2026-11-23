@@ -1,19 +1,95 @@
 name: mobile
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      API_BASE_URL: ${{ vars.API_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with:
+          channel: stable
+          cache: true
+
       - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: 17 }
-      - run: bash ./scripts/bootstrap-flutter.sh
-      - run: for p in packages/near_me_core packages/near_me_support apps/customer apps/admin apps/support; do (cd mobile/$p && flutter analyze --no-fatal-infos --no-fatal-warnings && (ls test >/dev/null 2>&1 && flutter test || true)); done
-      - name: Debug APKs (unsigned CI build; release signing stays on the Owner's machine or in encrypted secrets)
-        run: for a in customer admin support; do (cd mobile/apps/$a && flutter build apk --debug --dart-define=API_BASE_URL=https://example.invalid); done
-  release-signed:   # optional: enable by adding secrets ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_PASSWORD
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Prepare Android projects
+        run: bash ./scripts/bootstrap-flutter.sh
+
+      - name: Analyze and test Flutter packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          for p in packages/near_me_core packages/near_me_support apps/customer apps/admin apps/support; do
+            (
+              cd "mobile/$p"
+              flutter analyze --no-fatal-infos --no-fatal-warnings
+              if [ -d test ]; then flutter test; fi
+            )
+          done
+
+      - name: Validate backend URL
+        run: |
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::error::Set the GitHub Actions repository variable API_BASE_URL to the deployed Near Me backend HTTPS URL."
+            exit 1
+          fi
+          case "$API_BASE_URL" in
+            https://*) ;;
+            *) echo "::error::API_BASE_URL must use HTTPS."; exit 1 ;;
+          esac
+
+      - name: Build Customer APK
+        run: |
+          cd mobile/apps/customer
+          flutter build apk --debug --dart-define=API_BASE_URL="$API_BASE_URL"
+
+      - name: Build Admin APK
+        run: |
+          cd mobile/apps/admin
+          flutter build apk --debug --dart-define=API_BASE_URL="$API_BASE_URL"
+
+      - name: Build Support APK
+        run: |
+          cd mobile/apps/support
+          flutter build apk --debug --dart-define=API_BASE_URL="$API_BASE_URL"
+
+      - name: Upload Customer APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nearme-customer-debug-apk
+          path: mobile/apps/customer/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Admin APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nearme-admin-debug-apk
+          path: mobile/apps/admin/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Support APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nearme-support-debug-apk
+          path: mobile/apps/support/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  release-signed:
     if: false
     runs-on: ubuntu-latest
-    steps: [ { run: "echo 'Decode keystore from secret into $RUNNER_TEMP, write key.properties, run scripts/build-all.sh. Never upload the keystore as an artifact.'" } ]
+    steps:
+      - run: echo "Release signing is intentionally disabled until the Owner configures encrypted Android signing secrets."
