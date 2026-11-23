@@ -15,7 +15,7 @@ class AppState extends ChangeNotifier {
   int radiusKm = kDefaultRadiusKm; // 0 means "all distances"
   Map<String, dynamic> remoteConfig = {};
   int pinTimeoutSec = 60;
-  AppBuilderConfig get builder => AppBuilderConfig.fromJson((remoteConfig['config'] as Map<String, dynamic>?)?['builder.app']); // Owner-published, data-only
+  AppBuilderConfig get builder => AppBuilderConfig.fromJson((remoteConfig['config'] as Map<String, dynamic>?)?['builder.app']);
   List<int> get allowedPinTimeouts { final v = (remoteConfig['config'] as Map<String, dynamic>?)?['pin.allowed_timeouts_sec']; return v is List ? v.cast<int>() : const [0, 60, 300, 900]; }
 
   Future<void> init() async {
@@ -25,7 +25,7 @@ class AppState extends ChangeNotifier {
     themeMode = ThemeMode.values[p.getInt('themeMode') ?? 0];
     pinTimeoutSec = p.getInt('pinTimeout') ?? 60;
     signedIn = await api.restore();
-    try { remoteConfig = await api.get('/api/config'); } catch (_) {/* offline: keep defaults */}
+    try { remoteConfig = await api.get('/api/config'); } catch (_) {}
   }
 
   Future<void> login(String email, String password, String installId) async {
@@ -35,9 +35,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> register({required String email, required String password, required String name, required DateTime birth, required String installId}) async {
+  Future<void> register({
+    required String email, required String password, required String name, required DateTime birth, required String installId,
+    required String gender, required String bio, required List<String> interests, required int minAge, required int maxAge,
+  }) async {
     final b = '${birth.year.toString().padLeft(4, '0')}-${birth.month.toString().padLeft(2, '0')}-${birth.day.toString().padLeft(2, '0')}';
-    final t = await api.post('/api/auth/register', {'email': email, 'password': password, 'display_name': name, 'birthdate': b, 'install_id': installId, 'accept_terms': true});
+    final t = await api.post('/api/auth/register', {
+      'email': email, 'password': password, 'display_name': name, 'birthdate': b, 'install_id': installId, 'accept_terms': true,
+      'gender': gender, 'bio': bio, 'interests': interests, 'min_age': minAge, 'max_age': maxAge,
+    });
     await api.saveTokens(t);
     signedIn = true;
     notifyListeners();
@@ -62,7 +68,6 @@ class AppState extends ChangeNotifier {
   Future<void> setThemeMode(ThemeMode m) async { themeMode = m; (await SharedPreferences.getInstance()).setInt('themeMode', m.index); notifyListeners(); }
   Future<void> setPinTimeout(int s) async { pinTimeoutSec = allowedPinTimeouts.contains(s) ? s : allowedPinTimeouts.first; (await SharedPreferences.getInstance()).setInt('pinTimeout', pinTimeoutSec); notifyListeners(); }
   Timer? _beat;
-  /// Foreground heartbeat for the online indicator (respects the member's own privacy toggles on the server).
   void startPresence() { _beat?.cancel(); _beat = Timer.periodic(const Duration(seconds: 60), (_) { if (signedIn) api.post('/api/presence', {}).catchError((_) => <String, dynamic>{}); }); }
   void stopPresence() => _beat?.cancel();
   void setRadius(int km) { radiusKm = km; notifyListeners(); }
