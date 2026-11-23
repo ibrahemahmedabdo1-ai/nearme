@@ -1,0 +1,4 @@
+import { handle, json, auth, body } from "@/lib/http";
+import { q } from "@/lib/db";
+export const GET = handle(async (r) => { const c = await auth(r); return json({ notifications: await q("SELECT id,kind,title,body,data,created_at,read_at FROM notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50", [c.sub]), unread: (await q<{ n: number }>("SELECT count(*)::int AS n FROM notifications WHERE user_id=$1 AND read_at IS NULL", [c.sub]))[0].n }); });
+export const POST = handle(async (r) => { const c = await auth(r); const { ids } = await body(r, x => ({ ids: x.ids === undefined ? null : (Array.isArray(x.ids) && x.ids.length <= 100 ? (x.ids as string[]) : (() => { throw new Error("invalid_ids"); })()) })); await q("UPDATE notifications SET read_at=now() WHERE user_id=$1 AND read_at IS NULL AND ($2::uuid[] IS NULL OR id = ANY($2::uuid[]))", [c.sub, ids]); return json({ ok: true }); });

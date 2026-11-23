@@ -1,0 +1,9 @@
+node_modules
+.next
+.env*
+!.env.example
+*.jks
+*.keystore
+key.properties
+build/
+.dart_tool/

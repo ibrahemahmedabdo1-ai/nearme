@@ -1,0 +1,3 @@
+export default function Terms() { return (<main><h1>Terms of Service — NEAR ME</h1>
+<p><b>Template — Owner/legal review required.</b></p>
+<ul><li>You must be 18 or older.</li><li>One account per device. No impersonation, harassment, hate, sexual content involving minors, scams, spam, or illegal content.</li><li>You are responsible for content you post. We may remove content and restrict or ban accounts that violate these terms or the Community Guidelines.</li><li>You can report and block any member. Reports are reviewed by humans.</li><li>The service is free and ad-supported.</li><li>Appeals: contact support in-app. The Owner makes final decisions.</li></ul></main>); }

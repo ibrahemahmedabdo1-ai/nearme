@@ -1,0 +1,2 @@
+# NEAR ME Community Guidelines (template — Owner review required)
+18+ only. Be respectful. Prohibited: harassment, hate, threats, impersonation, scams, spam, nudity or sexual solicitation, any sexual content involving minors (zero tolerance: removal, permanent ban, report to authorities), compensated-dating arrangements, illegal goods, sharing others' private information. Report any member or message in the app; block anyone at any time. Violations lead to warnings, restrictions, suspension or permanent ban; you may appeal in-app; the Owner's decision is final.

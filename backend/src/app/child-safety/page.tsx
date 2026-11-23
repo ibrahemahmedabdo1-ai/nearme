@@ -1,0 +1,3 @@
+export default function ChildSafety() { return (<main><h1>Child Safety Standards — NEAR ME</h1>
+<p><b>Template — Owner must fill the contact and confirm procedures.</b></p>
+<ul><li>NEAR ME prohibits child sexual abuse and exploitation (CSAE) and any sexualization of minors. Users must be 18+.</li><li>In-app reporting is available on every profile and message; reports in the categories "minor safety" and "CSAE" are prioritized for human review.</li><li>Confirmed CSAE content is removed, the account is permanently banned, and it is reported to the relevant authorities and the National Center for Missing &amp; Exploited Children where applicable.</li><li>Child safety contact: [OWNER: name + email monitored daily].</li></ul></main>); }

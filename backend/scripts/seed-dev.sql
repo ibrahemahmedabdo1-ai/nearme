@@ -1,0 +1,3 @@
+-- DEVELOPMENT ONLY. Never run in production. Creates interests and default (disabled) ad placements.
+INSERT INTO interests(slug,name_en,name_ar) VALUES ('travel','Travel','سفر'),('photography','Photography','تصوير'),('reading','Reading','قراءة'),('cooking','Cooking','طبخ'),('movies','Movies','أفلام'),('sports','Sports','رياضة'),('music','Music','موسيقى'),('gaming','Gaming','ألعاب') ON CONFLICT DO NOTHING;
+INSERT INTO ad_config(placement,format,enabled) VALUES ('home_feed','native',false),('near_me_list','banner',false),('tab_transition','interstitial',false),('app_open','app_open',false),('daily_reward','rewarded',false) ON CONFLICT DO NOTHING;

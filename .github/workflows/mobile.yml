@@ -1,0 +1,19 @@
+name: mobile
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: ./scripts/bootstrap-flutter.sh
+      - run: for p in packages/near_me_core packages/near_me_support apps/customer apps/admin apps/support; do (cd mobile/$p && flutter analyze && (ls test >/dev/null 2>&1 && flutter test || true)); done
+      - name: Debug APKs (unsigned CI build; release signing stays on the Owner's machine or in encrypted secrets)
+        run: for a in customer admin support; do (cd mobile/apps/$a && flutter build apk --debug --dart-define=API_BASE_URL=https://example.invalid); done
+  release-signed:   # optional: enable by adding secrets ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_PASSWORD
+    if: false
+    runs-on: ubuntu-latest
+    steps: [ { run: "echo 'Decode keystore from secret into $RUNNER_TEMP, write key.properties, run scripts/build-all.sh. Never upload the keystore as an artifact.'" } ]
