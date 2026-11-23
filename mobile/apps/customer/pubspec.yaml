@@ -8,7 +8,7 @@ environment:
 dependencies:
   flutter: { sdk: flutter }
   flutter_localizations: { sdk: flutter }
-  intl: ^0.19.0
+  intl: ^0.20.3
   near_me_core: { path: ../../packages/near_me_core }
   geolocator: 13.0.2
   google_mobile_ads: 5.3.0
