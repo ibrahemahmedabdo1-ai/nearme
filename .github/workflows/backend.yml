@@ -13,8 +13,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
-      - run: npm ci
+        name: backend
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install --no-audit --no-fund   # switch to `npm ci` + cache after committing package-lock.json
+      - run: npm test
+      - run: sudo apt-get install -y postgresql-client
+      - run: npm run test:db
+        env: { TEST_PG_URL: "postgresql://postgres:postgres@localhost:5432/postgres", PGPASSWORD: postgres }
+      - run: npm run test:integration
+        env: { TEST_PG_URL: "postgresql://postgres:postgres@localhost:5432/postgres", PGPASSWORD: postgres }
+      - run: npm run typecheck
+      - run: npm run build
+        env: { DATABASE_URL: "postgresql://x:y@localhost/z", JWT_SECRET: "ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci" }
+
       - run: npm run typecheck
       - run: npm test
       - run: sudo apt-get install -y postgresql-client
