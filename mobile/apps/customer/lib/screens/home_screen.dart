@@ -14,6 +14,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _me;
   List<Map<String, dynamic>> _people = [];
+  List<dynamic> _myInterests = [];
   bool _loading = true;
   String? _error;
   final Set<String> _working = {};
@@ -33,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       setState(() {
         _me = meData['user'] as Map<String, dynamic>?;
+        _myInterests = (meData['interests'] as List<dynamic>? ?? <dynamic>[]);
         _people = (discovery['results'] as List<dynamic>).cast<Map<String, dynamic>>();
       });
     } catch (e) {
@@ -58,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final name = _me?['display_name']?.toString() ?? '';
     final bio = _me?['bio']?.toString() ?? '';
-    final interests = (_me == null ? <dynamic>[] : (_me!['interests'] as List<dynamic>? ?? <dynamic>[]));
+    final interests = _myInterests;
     final cs = Theme.of(context).colorScheme;
     return RefreshIndicator(
       onRefresh: _load,
