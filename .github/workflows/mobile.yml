@@ -49,6 +49,14 @@ jobs:
             *) echo "::error::API_BASE_URL must use HTTPS."; exit 1 ;;
           esac
 
+      - name: Verify live backend and database
+        shell: bash
+        run: |
+          set -euo pipefail
+          API_BASE_URL="${API_BASE_URL%/}"
+          echo "API_BASE_URL=$API_BASE_URL" >> "$GITHUB_ENV"
+          curl --fail --silent --show-error --max-time 25 "$API_BASE_URL/api/health"
+
       - name: Build Customer APK
         run: |
           cd mobile/apps/customer
