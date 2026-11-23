@@ -12,7 +12,7 @@ class PinStore {
   final FlutterSecureStorage _s;
 
   static String _hash(String pin, String salt) {
-    var d = utf8.encode('$salt:$pin');
+    List<int> d = utf8.encode('$salt:$pin');
     for (var i = 0; i < 20000; i++) { d = sha256.convert(d).bytes; }
     return base64.encode(d);
   }
