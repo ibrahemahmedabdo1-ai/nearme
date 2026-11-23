@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      API_BASE_URL: ${{ vars.API_BASE_URL }}
+      API_BASE_URL: https://nearme-backend-otpprovider.vercel.app
     steps:
       - uses: actions/checkout@v4
 
