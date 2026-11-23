@@ -43,7 +43,7 @@ export async function staff(role: "support" | "admin" | "owner", name: string): 
 before(() => {
   assert.equal(psql(BASE, `CREATE DATABASE ${DB}`).status, 0);
   const m = spawnSync("node", ["--experimental-strip-types", "scripts/migrate.ts"], { env: { ...process.env, DATABASE_URL: URL_DB }, encoding: "utf8" }); assert.equal(m.status, 0, m.stderr);
-  sql(`INSERT INTO interests(slug,name_en,name_ar) VALUES ('travel','Travel','سفر'),('music','Music','موسيقى'),('sports','Sports','رياضة')`);
+  sql(`INSERT INTO interests(slug,name_en,name_ar) VALUES ('travel','Travel','سفر'),('music','Music','موسيقى'),('sports','Sports','رياضة') ON CONFLICT (slug) DO NOTHING`);
 });
 after(() => { psql(BASE, `DROP DATABASE IF EXISTS ${DB}`); });
 
