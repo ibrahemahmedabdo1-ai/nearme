@@ -10,7 +10,9 @@ declare -A NAMES=( [customer]="NEAR ME" [admin]="NEAR ME Admin" [support]="NEAR 
 (cd "$ROOT/mobile/packages/near_me_support" && flutter pub get)
 for app in customer admin support; do
   dir="$ROOT/mobile/apps/$app"; pushd "$dir" >/dev/null
+  had_test=0; [ -d test ] && had_test=1
   [ -d android ] || flutter create --platforms=android --org "${IDS[$app]%.*}" --project-name "near_me_${app}$([ $app = support ] && echo _app)" .
+  [ $had_test = 1 ] || rm -rf test   # flutter create adds a default test that references MyApp and would fail analyze
   flutter pub get
   GRADLE="android/app/build.gradle.kts"; [ -f "$GRADLE" ] || GRADLE="android/app/build.gradle"
   python3 "$ROOT/scripts/patch_android.py" "$GRADLE" "${IDS[$app]}" "${NAMES[$app]}" "$app"

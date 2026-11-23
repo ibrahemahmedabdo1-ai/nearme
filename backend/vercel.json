@@ -7,7 +7,7 @@
   "crons": [
     {
       "path": "/api/cron/occasions",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/retention",
@@ -15,7 +15,7 @@
     },
     {
       "path": "/api/cron/social-publish",
-      "schedule": "*/10 * * * *"
+      "schedule": "30 6 * * *"
     }
   ]
 }

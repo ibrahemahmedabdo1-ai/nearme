@@ -31,4 +31,4 @@ git branch -M main && git remote add origin git@github.com:<you>/near-me.git && 
 
 ## Local verification before deploying
 `cd backend && npm install && TEST_PG_URL=postgresql:///postgres npm run test:all` (needs PostgreSQL + psql locally).
-Set `CRON_SECRET` in Vercel; `vercel.json` already schedules `/api/cron/occasions` every 15 minutes.
+Set `CRON_SECRET` in Vercel; `vercel.json` schedules the three crons DAILY (the only frequency Vercel Hobby accepts; a faster schedule makes the deployment fail). For 15-minute occasion/publishing precision without Pro, add repo secrets `APP_URL` and `CRON_SECRET`; `.github/workflows/cron.yml` then calls the endpoints every 15 minutes. On Vercel Pro you may instead set `*/15 * * * *` in vercel.json.
