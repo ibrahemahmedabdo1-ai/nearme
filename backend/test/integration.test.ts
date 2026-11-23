@@ -23,6 +23,23 @@ test("register: age gate, weak password, terms, duplicates, email verification",
   assert.equal(JSON.stringify(me.body).includes("password"), false);
 });
 
+test("registration saves a complete profile and discovery preferences", async () => {
+  const install = randomBytes(16).toString("hex");
+  const r = await call("auth/register", "POST", { body: {
+    email: "complete-profile@x.io", password: pw, display_name: "Complete Profile", birthdate: "1998-04-12",
+    install_id: install, accept_terms: true, gender: "female", bio: "I enjoy travel, music and photography.",
+    interests: ["travel", "music", "technology"], min_age: 22, max_age: 40,
+  } });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const me = await call("me", "GET", { token: r.body.access_token });
+  assert.equal(me.body.user.gender, "female");
+  assert.equal(me.body.user.bio, "I enjoy travel, music and photography.");
+  assert.deepEqual(me.body.interests.sort(), ["music", "technology", "travel"]);
+  const prefs = await call("me/preferences", "GET", { token: r.body.access_token });
+  assert.equal(prefs.body.preferences.min_age, 22);
+  assert.equal(prefs.body.preferences.max_age, 40);
+});
+
 test("login: generic errors, rate limit, banned account", async () => {
   const u = await newUser("login");
   const bad = await call("auth/login", "POST", { body: { email: u.email, password: "wrong-password" } });
