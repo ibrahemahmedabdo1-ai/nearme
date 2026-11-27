@@ -72,10 +72,24 @@ class _AdsPageState extends State<AdsPage> {
               const Text('أماكن ثابتة فقط. الإعلانات لا تظهر في المحادثات أو التسجيل أو التوثيق أو الدعم أو الأمان.', style: TextStyle(fontSize: 12)),
               for (final p in _placements) Card(margin: const EdgeInsets.only(top: 12), child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 SwitchListTile(contentPadding: EdgeInsets.zero, title: Text('${p['placement']} · ${p['format']}'), subtitle: Text(p['enabled'] == true ? 'مفعّل' : 'متوقف'), value: p['enabled'] == true, onChanged: _saving ? null : (v) => setState(() => p['enabled'] = v)),
-                Text('الفاصل الأدنى: ${p['min_gap_sec']} ثانية'),
-                Slider(value: ((p['min_gap_sec'] as num?)?.toDouble() ?? 120).clamp(30, 3600).toDouble(), min: 30, max: 3600, divisions: 119, label: '${p['min_gap_sec']}ث', onChanged: _saving ? null : (v) => setState(() => p['min_gap_sec'] = (v / 30).round() * 30)),
-                Text('الحد الأقصى لكل جلسة: ${p['max_per_session']} ظهور'),
-                Slider(value: ((p['max_per_session'] as num?)?.toDouble() ?? 3).clamp(0, 20).toDouble(), min: 0, max: 20, divisions: 20, label: '${p['max_per_session']}', onChanged: _saving ? null : (v) => setState(() => p['max_per_session'] = v.round())),
+                Text('الفاصل الأدنى: ${p['min_gap_sec']} ثانية (حد أمان إلزامي: ${p['safety_min_gap_sec']} ثانية)'),
+                Slider(
+                  value: ((p['min_gap_sec'] as num?)?.toDouble() ?? 120).clamp((p['safety_min_gap_sec'] as num?)?.toDouble() ?? 0, 3600).toDouble(),
+                  min: (p['safety_min_gap_sec'] as num?)?.toDouble() ?? 0,
+                  max: 3600,
+                  divisions: 120,
+                  label: '${p['min_gap_sec']}ث',
+                  onChanged: _saving ? null : (v) => setState(() => p['min_gap_sec'] = (v / 30).round() * 30 < ((p['safety_min_gap_sec'] as num?)?.toInt() ?? 0) ? (p['safety_min_gap_sec'] as num).toInt() : (v / 30).round() * 30),
+                ),
+                Text('الحد الأقصى لكل جلسة: ${p['max_per_session']} ظهور (سقف الأمان: ${p['safety_max_per_session']})'),
+                Slider(
+                  value: ((p['max_per_session'] as num?)?.toDouble() ?? 0).clamp(0, (p['safety_max_per_session'] as num?)?.toDouble() ?? 0).toDouble(),
+                  min: 0,
+                  max: (p['safety_max_per_session'] as num?)?.toDouble() ?? 1,
+                  divisions: ((p['safety_max_per_session'] as num?)?.toInt() ?? 1).clamp(1, 20),
+                  label: '${p['max_per_session']}',
+                  onChanged: _saving ? null : (v) => setState(() => p['max_per_session'] = v.round()),
+                ),
                 Align(alignment: AlignmentDirectional.centerEnd, child: FilledButton(onPressed: _saving ? null : () => _save(p), child: const Text('حفظ إعدادات المكان'))),
               ]))),
             ]));
