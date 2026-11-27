@@ -10,3 +10,5 @@
 8. Before a production build, export real AdMob identifiers: `ADMOB_APP_ID`, `ADMOB_BANNER_ID`, `ADMOB_INTERSTITIAL_ID`, and `ADMOB_REWARDED_ID`. Run `bash scripts/verify-release-admob.sh`; `scripts/build-all.sh` now runs this guard automatically and rejects Google's test IDs/placeholders.
 9. The Customer Android manifest uses the `ADMOB_APP_ID` Gradle placeholder. The bootstrap script supplies Google's TEST app ID only as a development fallback. Production must override it with the real AdMob app ID.
 10. Build with `API_BASE_URL=https://...` only. The release script rejects non-HTTPS backend URLs and runs Flutter analyze/tests before creating signed APK/AAB artifacts.
+
+11. `scripts/build-all.sh` now requires one upload key per app under `$ANDROID_KEYS_DIR` (defaults to `~/.nearme-keys`): `customer.key.properties`, `admin.key.properties`, and `support.key.properties`. It validates each referenced keystore exists, stages each properties file only during the build, and removes the staged `android/key.properties` files on exit. Keep the original keystores and properties outside the repository and back them up securely.
