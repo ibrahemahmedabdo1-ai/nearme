@@ -10,7 +10,7 @@ const _bannerId = String.fromEnvironment('ADMOB_BANNER_ID', defaultValue: 'ca-ap
 const _rewardedId = String.fromEnvironment('ADMOB_REWARDED_ID', defaultValue: 'ca-app-pub-3940256099942544/5224354917');
 const _interstitialId = String.fromEnvironment('ADMOB_INTERSTITIAL_ID', defaultValue: 'ca-app-pub-3940256099942544/1033173712');
 const _nativeId = String.fromEnvironment('ADMOB_NATIVE_ID', defaultValue: 'ca-app-pub-3940256099942544/2247696110');
-const _appOpenId = String.fromEnvironment('ADMOB_APP_OPEN_ID', defaultValue: 'ca-app-pub-3940256099942544/5662855259');
+const _appOpenId = String.fromEnvironment('ADMOB_APP_OPEN_ID', defaultValue: 'ca-app-pub-3940256099942544/9257395921');
 const _rewardedInterstitialId = String.fromEnvironment('ADMOB_REWARDED_INTERSTITIAL_ID', defaultValue: 'ca-app-pub-3940256099942544/5354046379');
 
 class AdService extends ChangeNotifier {
@@ -174,7 +174,8 @@ class AdService extends ChangeNotifier {
     _appOpenLoading = true;
     AppOpenAd.load(
       adUnitId: _appOpenId,
-      request: const AdRequest(),
+      orientation: AppOpenAd.orientationPortrait,
+      adRequest: const AdRequest(),
       adLoadCallback: AppOpenAdLoadCallback(
         onAdLoaded: (ad) { _appOpen = ad; _appOpenLoadedAt = DateTime.now(); _appOpenLoading = false; },
         onAdFailedToLoad: (_) { _appOpen = null; _appOpenLoading = false; },
