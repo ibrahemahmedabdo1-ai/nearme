@@ -20,7 +20,7 @@ class ProfileScreen extends StatelessWidget {
         ListTile(leading: const Icon(Icons.edit_outlined), title: const Text('تعديل الملف والاهتمامات'), onTap: () => _go(context, ProfileEditScreen(api: state.api))),
         ListTile(leading: const Icon(Icons.favorite_border), title: const Text('أعجبوا بك'), onTap: () => _go(context, IncomingLikesScreen(api: state.api))),
         ListTile(leading: const Icon(Icons.notifications_none), title: const Text('الإشعارات'), onTap: () => _go(context, NotificationsScreen(api: state.api))),
-        ListTile(leading: const Icon(Icons.emoji_events_outlined), title: const Text('الإنجازات والمخزون'), onTap: () => _go(context, RewardsScreen(api: state.api, builder: state.builder, onWatchRewardedAd: AdService.instance.showRewarded))),
+        ListTile(leading: const Icon(Icons.emoji_events_outlined), title: const Text('الإنجازات والمخزون'), onTap: () => _go(context, RewardsScreen(api: state.api, builder: state.builder, onWatchRewardedAd: AdService.instance.showRewarded, onWatchRewardedInterstitialAd: AdService.instance.showRewardedInterstitial))),
         ListTile(leading: const Icon(Icons.verified_outlined), title: const Text('توثيق الحساب'), onTap: () => _go(context, VerificationScreen(api: state.api))),
         ListTile(leading: const Icon(Icons.support_agent), title: const Text('الدعم والملاحظات'), onTap: () => _go(context, SupportTicketScreen(api: state.api))),
         ListTile(leading: const Icon(Icons.gavel_outlined), title: const Text('اعتراض على عقوبة'), onTap: () => _go(context, AppealScreen(api: state.api))),
