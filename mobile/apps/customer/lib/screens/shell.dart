@@ -15,7 +15,7 @@ class Shell extends StatefulWidget {
   State<Shell> createState() => _ShellState();
 }
 
-class _ShellState extends State<Shell> {
+class _ShellState extends State<Shell> with WidgetsBindingObserver {
   int _i = 2;
   @override
   void initState() { super.initState(); widget.state.startPresence(); }
