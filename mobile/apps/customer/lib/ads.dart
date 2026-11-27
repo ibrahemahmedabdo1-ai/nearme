@@ -338,7 +338,7 @@ class _NmBannerState extends State<NmBanner> {
   void _tryLoad() {
     if (!mounted || _attempted || !AdService.instance.ready) return;
     if (!adAllowed(screen: widget.screen, format: 'banner', isTransition: false) ||
-        !AdService.instance.canShow(widget.placement) ||\n        !adAllowed(screen: 'home', format: 'native', isTransition: false)) return;
+        !AdService.instance.canShow(widget.placement)) return;
     _attempted = true;
     _ad = BannerAd(
       adUnitId: _bannerId,
