@@ -77,3 +77,19 @@ A policy checklist is not a substitute for reviewing the actual app, SDK disclos
 - Owner controls now display the hard safety ceilings returned by the server. Attempts to configure higher frequency are clamped to the policy limit.
 - The account currently has six AdMob ad units, but only Banner, Interstitial, and Rewarded are wired in the Customer client. Native, App Open, and Rewarded Interstitial remain explicitly unintegrated; they require their own UI lifecycle, consent-aware load/show behavior, format-specific frequency controls, and tests before activation.
 - Chat threads remain excluded. Do not place AdMob inventory in direct private messaging; this restriction is intentional to avoid policy risk.
+
+
+## Six-format AdMob implementation status (2026-11-27)
+
+All six publisher-console units now have distinct client-side format integrations and Owner-controlled server placements. Every placement remains disabled by default and must be enabled explicitly after the app is approved and tested.
+
+- Banner `home_feed`: existing fixed home placement; hard cap 4/session, 120s minimum gap.
+- Native `discovery_native`: a clearly labeled native ad after the third organic discovery card; hard cap 3/session, 90s minimum gap.
+- Interstitial `tab_transition`: natural eligible tab transitions only; hard cap 3/session, 180s minimum gap and at least two eligible transitions between impressions.
+- Rewarded `rewarded_cosmetic`: explicit user choice in Rewards; non-cash cosmetic reward only; hard cap 5/session.
+- App Open `app_open`: only when returning from background on an eligible non-sensitive screen; hard cap 1/session and 4-hour minimum gap.
+- Rewarded Interstitial `rewarded_interstitial_cosmetic`: separate, explicit opt-in control in Rewards; non-cash cosmetic reward only; hard cap 2/session and 5-minute minimum gap.
+
+The SDK IDs are supplied through `--dart-define`; development defaults use Google's official test unit IDs. The Android application ID placeholder also defaults to Google's official test App ID. Production IDs must be passed only in release build configuration. Consent is resolved through UMP before SDK requests. No ad placement is permitted in private chat threads, authentication, support, verification, appeals, or safety flows.
+
+These integrations are code changes, not evidence of live ad serving. Keep placements disabled until UMP, test-device validation, the app's AdMob review, and Play release checks are complete.
