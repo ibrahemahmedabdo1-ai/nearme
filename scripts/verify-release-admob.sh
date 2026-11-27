@@ -2,7 +2,7 @@
 # Fail closed before any production Android build if AdMob identifiers are missing or are Google's test IDs.
 set -euo pipefail
 
-required=(ADMOB_APP_ID ADMOB_BANNER_ID ADMOB_INTERSTITIAL_ID ADMOB_REWARDED_ID)
+required=(ADMOB_APP_ID ADMOB_BANNER_ID ADMOB_NATIVE_ID ADMOB_INTERSTITIAL_ID ADMOB_REWARDED_ID ADMOB_APP_OPEN_ID ADMOB_REWARDED_INTERSTITIAL_ID)
 for name in "${required[@]}"; do
   value="${!name:-}"
   if [[ -z "$value" ]]; then
@@ -19,7 +19,7 @@ done
   echo "::error::ADMOB_APP_ID has an invalid AdMob app ID format."
   exit 1
 }
-for name in ADMOB_BANNER_ID ADMOB_INTERSTITIAL_ID ADMOB_REWARDED_ID; do
+for name in ADMOB_BANNER_ID ADMOB_NATIVE_ID ADMOB_INTERSTITIAL_ID ADMOB_REWARDED_ID ADMOB_APP_OPEN_ID ADMOB_REWARDED_INTERSTITIAL_ID; do
   value="${!name}"
   [[ "$value" =~ ^ca-app-pub-[0-9]{16}/[0-9]{10}$ ]] || {
     echo "::error::$name has an invalid AdMob ad unit ID format."
