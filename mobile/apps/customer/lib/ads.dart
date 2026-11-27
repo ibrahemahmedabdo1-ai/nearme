@@ -47,6 +47,10 @@ class AdService extends ChangeNotifier {
       final previousLaunches = prefs.getInt('nearme_ad_launch_count') ?? 0;
       await prefs.setInt('nearme_ad_launch_count', previousLaunches + 1);
       _appOpenEligible = previousLaunches >= 2;
+      final lastAppOpenMs = prefs.getInt('nearme_ad_app_open_last_ms');
+      if (lastAppOpenMs != null) {
+        _lastPlacementImpression['app_open'] = DateTime.fromMillisecondsSinceEpoch(lastAppOpenMs);
+      }
       final canRequest = await _resolveConsent();
       notifyListeners();
       if (!canRequest) return;
@@ -147,6 +151,9 @@ class AdService extends ChangeNotifier {
   void recordImpression(String placement) {
     _sessionImpressions[placement] = (_sessionImpressions[placement] ?? 0) + 1;
     _lastPlacementImpression[placement] = DateTime.now();
+    if (placement == 'app_open') {
+      SharedPreferences.getInstance().then((prefs) => prefs.setInt('nearme_ad_app_open_last_ms', DateTime.now().millisecondsSinceEpoch));
+    }
   }
 
   void _preload() {
