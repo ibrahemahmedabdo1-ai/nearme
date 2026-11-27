@@ -5,7 +5,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 API="${API_BASE_URL:?set API_BASE_URL=https://your-production-backend.example}"
 DIST="$ROOT/dist"
+KEY_DIR="${ANDROID_KEYS_DIR:-$HOME/.nearme-keys}"
 mkdir -p "$DIST"
+cleanup() {
+  for app in customer admin support; do rm -f "$ROOT/mobile/apps/$app/android/key.properties"; done
+}
+trap cleanup EXIT
 
 case "$API" in
   https://*) ;;
@@ -18,6 +23,11 @@ bash "$ROOT/scripts/verify-release-admob.sh"
 for app in customer admin support; do
   d="$ROOT/mobile/apps/$app"
   [ -d "$d/android" ] || { echo "run scripts/bootstrap-flutter.sh first"; exit 1; }
+  KEY_PROPS="$KEY_DIR/$app.key.properties"
+  [ -f "$KEY_PROPS" ] || { echo "::error::Missing $KEY_PROPS. Run scripts/generate-upload-keystore.sh after bootstrap."; exit 1; }
+  STORE_FILE="$(sed -n 's/^storeFile=//p' "$KEY_PROPS" | head -n 1)"
+  [ -n "$STORE_FILE" ] && [ -f "$STORE_FILE" ] || { echo "::error::Upload keystore missing for $app."; exit 1; }
+  cp "$KEY_PROPS" "$d/android/key.properties"
   (
     cd "$d"
     flutter analyze --no-fatal-infos --no-fatal-warnings
