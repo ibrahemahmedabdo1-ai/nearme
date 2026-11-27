@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:near_me_core/near_me_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// AdMob wiring. IDs come from --dart-define. Defaults are Google's official TEST IDs.
 /// Production builds must inject real IDs and must never ship these defaults.
@@ -28,6 +29,8 @@ class AdService extends ChangeNotifier {
   bool _appOpenLoading = false;
   RewardedInterstitialAd? _rewardedInterstitial;
   bool _rewardedInterstitialLoading = false;
+  bool _appOpenEligible = false;
+  DateTime? _appOpenLoadedAt;
   final Map<String, DateTime> _lastPlacementImpression = {};
   List<dynamic> placements = const [];
 
@@ -40,6 +43,10 @@ class AdService extends ChangeNotifier {
     if (_initialized || _initializing) return;
     _initializing = true;
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final previousLaunches = prefs.getInt('nearme_ad_launch_count') ?? 0;
+      await prefs.setInt('nearme_ad_launch_count', previousLaunches + 1);
+      _appOpenEligible = previousLaunches >= 2;
       final canRequest = await _resolveConsent();
       notifyListeners();
       if (!canRequest) return;
@@ -162,7 +169,7 @@ class AdService extends ChangeNotifier {
       adUnitId: _appOpenId,
       request: const AdRequest(),
       adLoadCallback: AppOpenAdLoadCallback(
-        onAdLoaded: (ad) { _appOpen = ad; _appOpenLoading = false; },
+        onAdLoaded: (ad) { _appOpen = ad; _appOpenLoadedAt = DateTime.now(); _appOpenLoading = false; },
         onAdFailedToLoad: (_) { _appOpen = null; _appOpenLoading = false; },
       ),
     );
@@ -171,13 +178,17 @@ class AdService extends ChangeNotifier {
   /// App-open ads are shown only on a return from background, never over a private chat,
   /// authentication, support, verification, appeal, or safety workflow.
   void onForegroundReturn({required String currentScreen}) {
-    if (!canShow('app_open') || _appOpen == null ||
+    if (!_appOpenEligible || !canShow('app_open') || _appOpen == null ||
         !adAllowed(screen: currentScreen, format: 'app_open', isTransition: true)) {
       _preloadAppOpen();
       return;
     }
+    if (_appOpenLoadedAt == null || DateTime.now().difference(_appOpenLoadedAt!) >= const Duration(hours: 4)) {
+      _appOpen!.dispose(); _appOpen = null; _appOpenLoadedAt = null; _preloadAppOpen(); return;
+    }
     final ad = _appOpen!;
     _appOpen = null;
+    _appOpenLoadedAt = null;
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdImpression: (_) => recordImpression('app_open'),
       onAdDismissedFullScreenContent: (a) { a.dispose(); _preloadAppOpen(); },
