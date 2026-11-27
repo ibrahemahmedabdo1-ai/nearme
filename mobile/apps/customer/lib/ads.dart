@@ -35,6 +35,12 @@ class AdService extends ChangeNotifier {
       final canRequest = await _resolveConsent();
       notifyListeners();
       if (!canRequest) return;
+      await MobileAds.instance.updateRequestConfiguration(
+        RequestConfiguration(maxAdContentRating: MaxAdContentRating.pg),
+      );
+      await MobileAds.instance.updateRequestConfiguration(
+        RequestConfiguration(maxAdContentRating: MaxAdContentRating.pg),
+      );
       await MobileAds.instance.initialize();
       _ready = true;
       _initialized = true;
