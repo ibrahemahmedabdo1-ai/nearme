@@ -22,6 +22,7 @@ void main() {
   });
   test('ad policy', () {
     expect(adAllowed(screen: 'chat_thread', format: 'banner', isTransition: false), false);
+    expect(adAllowed(screen: 'chat_list', format: 'banner', isTransition: false), false);
     for (final screen in ['login', 'registration', 'onboarding', 'support', 'support_chat', 'support_ticket', 'appeals', 'child_safety', 'moderation']) {
       expect(adAllowed(screen: screen, format: 'banner', isTransition: false), false, reason: 'ads must be blocked in $screen');
     }
