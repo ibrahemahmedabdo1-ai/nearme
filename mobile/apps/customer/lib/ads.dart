@@ -414,7 +414,8 @@ class _NmNativeAdState extends State<NmNativeAd> {
 
   void _tryLoad() {
     if (!mounted || _attempted || !AdService.instance.ready ||
-        !AdService.instance.canShow(widget.placement)) return;
+        !AdService.instance.canShow(widget.placement) ||
+        !adAllowed(screen: 'home', format: 'native', isTransition: false)) return;
     _attempted = true;
     _ad = NativeAd(
       adUnitId: _nativeId,
