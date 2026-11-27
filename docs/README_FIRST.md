@@ -46,3 +46,25 @@ All placements are disabled by default and Owner-controlled. No ads are permitte
 6. Complete security review, physical-device QA, and Android release signing before production rollout.
 
 See `FEATURES.md`, `SECURITY.md`, `CONTINUATION.md`, and `REPAIR_AND_ADS_PLAN.md` for detailed status and remaining work.
+
+
+## Launch-readiness work added on 2026-11-27
+
+- UMP consent lifecycle is now awaited with a bounded timeout and fail-closed behavior; privacy options are exposed when UMP says they are required.
+- Customer banner placements listen for consent resolution and are disposed if ad-request eligibility is withdrawn.
+- Android bootstrap uses a parameterized AdMob app ID instead of hardcoding a test app ID in the manifest. Debug builds retain Google's test fallback; release builds must supply production identifiers.
+- Added `scripts/verify-release-admob.sh`; `scripts/build-all.sh` now requires HTTPS API URL, production AdMob IDs, Flutter analyze/tests, and release signing configuration before building APK/AABs.
+- Customer signup now links to Terms, Privacy Policy, and Community Guidelines. Added the public Community Guidelines page.
+- Customer login re-checks stored birthdate age for existing accounts; a regression test covers blocking a pre-existing under-18 account.
+
+## Current blockers (do not bypass)
+
+- Latest GitHub Actions backend/mobile runs visible to this audit remain queued; no passing final-head CI result has been verified.
+- Vercel reported the free-tier daily deployment limit. A previous preview deployment was Ready, but the newest head has no verified fresh deployment.
+- Privacy Policy, Terms, and Child Safety pages still contain operator/legal placeholders. Add the real legal entity and monitored privacy/child-safety contact details, and obtain legal review.
+- Owner must configure Play Console age-restricted functionality to block minors for the dating/matchmaking core feature; the in-app/server age gate does not replace this Console control.
+- Owner must configure AdMob Privacy & messaging, real production app/ad unit IDs, and verify UMP behavior in applicable regions.
+- Owner must create and securely back up the three upload keystores / configure signing secrets. Signed-release CI remains intentionally disabled.
+- No production APK/AAB has been generated or delivered from this branch; Debug APK CI artifacts, if produced, are not store-ready releases.
+
+Current PR remains a draft and is not merged: https://github.com/ibrahemahmedabdo1-ai/nearme/pull/2
