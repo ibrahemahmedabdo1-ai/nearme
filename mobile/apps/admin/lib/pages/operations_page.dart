@@ -73,9 +73,9 @@ class _AdsPageState extends State<AdsPage> {
               for (final p in _placements) Card(margin: const EdgeInsets.only(top: 12), child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 SwitchListTile(contentPadding: EdgeInsets.zero, title: Text('${p['placement']} · ${p['format']}'), subtitle: Text(p['enabled'] == true ? 'مفعّل' : 'متوقف'), value: p['enabled'] == true, onChanged: _saving ? null : (v) => setState(() => p['enabled'] = v)),
                 Text('الفاصل الأدنى: ${p['min_gap_sec']} ثانية'),
-                Slider(value: ((p['min_gap_sec'] as num?)?.toDouble() ?? 120).clamp(30, 3600), min: 30, max: 3600, divisions: 119, label: '${p['min_gap_sec']}ث', onChanged: _saving ? null : (v) => setState(() => p['min_gap_sec'] = (v / 30).round() * 30)),
+                Slider(value: ((p['min_gap_sec'] as num?)?.toDouble() ?? 120).clamp(30, 3600).toDouble(), min: 30, max: 3600, divisions: 119, label: '${p['min_gap_sec']}ث', onChanged: _saving ? null : (v) => setState(() => p['min_gap_sec'] = (v / 30).round() * 30)),
                 Text('الحد الأقصى لكل جلسة: ${p['max_per_session']} ظهور'),
-                Slider(value: ((p['max_per_session'] as num?)?.toDouble() ?? 3).clamp(0, 20), min: 0, max: 20, divisions: 20, label: '${p['max_per_session']}', onChanged: _saving ? null : (v) => setState(() => p['max_per_session'] = v.round())),
+                Slider(value: ((p['max_per_session'] as num?)?.toDouble() ?? 3).clamp(0, 20).toDouble(), min: 0, max: 20, divisions: 20, label: '${p['max_per_session']}', onChanged: _saving ? null : (v) => setState(() => p['max_per_session'] = v.round())),
                 Align(alignment: AlignmentDirectional.centerEnd, child: FilledButton(onPressed: _saving ? null : () => _save(p), child: const Text('حفظ إعدادات المكان'))),
               ]))),
             ]));
