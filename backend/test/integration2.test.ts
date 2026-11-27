@@ -13,6 +13,14 @@ test("login is bound to the registered device (one account per device)", async (
   assert.equal(sql(`SELECT count(*) FROM security_events WHERE user_id='${u.id}' AND kind='login_unregistered_device'`), "1");
 });
 
+test("customer login re-checks adult eligibility for pre-existing accounts", async () => {
+  const u = await newUser("ageLogin");
+  sql(`UPDATE users SET birthdate='2012-01-01' WHERE id='${u.id}'`);
+  const denied = await call("auth/login", "POST", { body: { email: u.email, password: pw, install_id: u.install } });
+  assert.equal(denied.status, 403);
+  assert.equal(denied.body.error, "age_restricted");
+});
+
 test("profile edit, interests, hide, no secrets in /me", async () => {
   const u = await newUser("prof");
   assert.equal((await call("me", "PATCH", { token: u.token, body: { display_name: "Nova", bio: "hello world" } })).status, 200);
