@@ -7,8 +7,17 @@ API="${API_BASE_URL:?set API_BASE_URL=https://your-production-backend.example}"
 DIST="$ROOT/dist"
 KEY_DIR="${ANDROID_KEYS_DIR:-$HOME/.nearme-keys}"
 mkdir -p "$DIST"
+STAGE_DIR="$(mktemp -d)"
 cleanup() {
-  for app in customer admin support; do rm -f "$ROOT/mobile/apps/$app/android/key.properties"; done
+  for app in customer admin support; do
+    target="$ROOT/mobile/apps/$app/android/key.properties"
+    if [ -f "$STAGE_DIR/$app.key.properties" ]; then
+      cp "$STAGE_DIR/$app.key.properties" "$target"
+    else
+      rm -f "$target"
+    fi
+  done
+  rm -rf "$STAGE_DIR"
 }
 trap cleanup EXIT
 
@@ -27,11 +36,12 @@ for app in customer admin support; do
   [ -f "$KEY_PROPS" ] || { echo "::error::Missing $KEY_PROPS. Run scripts/generate-upload-keystore.sh after bootstrap."; exit 1; }
   STORE_FILE="$(sed -n 's/^storeFile=//p' "$KEY_PROPS" | head -n 1)"
   [ -n "$STORE_FILE" ] && [ -f "$STORE_FILE" ] || { echo "::error::Upload keystore missing for $app."; exit 1; }
+  if [ -f "$d/android/key.properties" ]; then cp "$d/android/key.properties" "$STAGE_DIR/$app.key.properties"; fi
   cp "$KEY_PROPS" "$d/android/key.properties"
   (
     cd "$d"
     flutter analyze --no-fatal-infos --no-fatal-warnings
-    flutter test
+    if [ -d test ] && find test -type f -name '*_test.dart' -print -quit | grep -q .; then flutter test; fi
     if [ "$app" = "customer" ]; then
       flutter build apk --release \
         --dart-define=API_BASE_URL="$API" \
