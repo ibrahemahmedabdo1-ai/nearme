@@ -8,7 +8,7 @@ class RewardsScreen extends StatefulWidget {
   final ApiClient api;
   final AppBuilderConfig builder;
   /// Provided by the app: shows an AdMob rewarded ad and resolves true when the user earned the reward.
-  final Future<bool> Function()? onWatchRewardedAd;
+  final Future<bool> Function()? onWatchRewardedAd;\n  final Future<bool> Function()? onWatchRewardedInterstitialAd;
   @override
   State<RewardsScreen> createState() => _RewardsScreenState();
 }
@@ -43,6 +43,16 @@ class _RewardsScreenState extends State<RewardsScreen> {
     try { await widget.api.post('/api/inventory/equip', {'slot': slot, 'item_id': item}); await _load(); } catch (e) { setState(() => _msg = errorText(e)); }
   }
 
+  Future<void> _adInterstitial() async {
+    final watched = await widget.onWatchRewardedInterstitialAd?.call() ?? false;
+    if (!watched) { if (mounted) setState(() => _msg = 'الإعلان غير متاح الآن'); return; }
+    try {
+      final r = await widget.api.post('/api/rewards/ad', {});
+      if (mounted) setState(() => _msg = r['item_id'] == null ? 'لديك كل العناصر المتاحة' : 'عنصر جديد: ${r['item_id']}');
+      await _load();
+    } catch (e) { if (mounted) setState(() => _msg = errorText(e)); }
+  }
+
   Future<void> _ad() async {
     final watched = await widget.onWatchRewardedAd?.call() ?? false;
     if (!watched) { setState(() => _msg = 'الإعلان غير متاح الآن'); return; }
@@ -67,7 +77,8 @@ class _RewardsScreenState extends State<RewardsScreen> {
             trailing: c['claimed'] == true ? const Icon(Icons.check_circle) : FilledButton(onPressed: c['completed'] == true ? () => _claim('${c['id']}') : null, child: const Text('استلم')),
           )),
         ],
-        if (f.feature('rewarded_ads') && widget.onWatchRewardedAd != null) Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: OutlinedButton.icon(onPressed: _ad, icon: const Icon(Icons.play_circle_outline), label: const Text('شاهد إعلانًا واحصل على عنصر مجاني (اختياري)'))),
+        if (f.feature('rewarded_ads') && widget.onWatchRewardedAd != null) Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: OutlinedButton.icon(onPressed: _ad, icon: const Icon(Icons.play_circle_outline), label: const Text('شاهد فيديو اختياريًا واحصل على عنصر تجميلي'))),
+        if (f.feature('rewarded_ads') && widget.onWatchRewardedInterstitialAd != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: OutlinedButton.icon(onPressed: _adInterstitial, icon: const Icon(Icons.card_giftcard_outlined), label: const Text('إعلان كامل اختياري مقابل عنصر تجميلي'))),
         if (f.feature('inventory')) ...[
           const SizedBox(height: 12), const Text('مخزوني', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           Wrap(spacing: 8, runSpacing: 8, children: [
