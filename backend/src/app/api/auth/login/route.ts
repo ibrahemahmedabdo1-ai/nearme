@@ -6,16 +6,24 @@ import { verifyTotp } from "@/lib/totp";
 import { decrypt } from "@/lib/crypto";
 import { env } from "@/lib/env";
 import { createHash } from "node:crypto";
-type U = { disabled_by_owner: boolean; id: string; password_hash: string | null; role: "customer" | "support" | "admin" | "owner"; status: string; totp_secret_enc: string | null };
+import { isAdult } from "@/domain/policy";
+type U = { birthdate: Date | string | null; disabled_by_owner: boolean; id: string; password_hash: string | null; role: "customer" | "support" | "admin" | "owner"; status: string; totp_secret_enc: string | null };
 let DUMMY: string | null = null;
 export const POST = handle(async (r) => {
   const b = await body(r, x => ({ email: email(x.email), password: str(x.password, "password", 1, 128), totp: x.totp === undefined ? undefined : str(x.totp, "totp", 6, 6), recovery_code: x.recovery_code === undefined ? undefined : str(x.recovery_code, "recovery_code", 8, 40), install_id: x.install_id === undefined ? undefined : str(x.install_id, "install_id", 16, 128) }));
   rateLimit(r, "login-ip", 30, 900_000); rateLimit(r, "login-acct", 8, 900_000, b.email);
-  const u = (await q<U>("SELECT id,password_hash,role,status,totp_secret_enc,disabled_by_owner FROM users WHERE email=$1", [b.email]))[0];
+  const u = (await q<U>("SELECT id,birthdate,password_hash,role,status,totp_secret_enc,disabled_by_owner FROM users WHERE email=$1", [b.email]))[0];
   DUMMY ??= await hashPassword("dummy-password-for-timing");
   const okPw = await verifyPassword(b.password, u?.password_hash ?? DUMMY); // constant-ish time even for unknown accounts
   if (!u || !okPw) { await audit(null, "auth.login_failed", undefined, { email_hash: b.email.length }, clientIp(r)); throw new HttpError(401, "invalid_credentials"); }
   if (u.status === "banned" || u.status === "deleted") throw new HttpError(403, "account_unavailable");
+  // Re-check stored age on every customer login, including accounts created before the age gate.
+  if (u.role === "customer") {
+    const birth = u.birthdate instanceof Date ? u.birthdate : new Date(`${u.birthdate}T00:00:00Z`);
+    if (!u.birthdate || Number.isNaN(birth.getTime()) || !isAdult(birth)) {
+      throw new HttpError(403, "age_restricted");
+    }
+  }
   let deviceId: string | null = null;
   if (u.role !== "customer") {   // staff and owner: mandatory 2FA (Owner may use a one-time recovery code instead)
     if (!u.totp_secret_enc) throw new HttpError(403, "2fa_enrollment_required");
