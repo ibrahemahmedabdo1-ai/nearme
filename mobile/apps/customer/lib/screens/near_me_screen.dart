@@ -15,6 +15,7 @@ class _NearMeScreenState extends State<NearMeScreen> {
   bool _loading = true, _needsPermission = false;
   String? _error;
   int _index = 0;
+  bool _swiping = false;
 
   @override
   void initState() { super.initState(); _load(); }
@@ -33,6 +34,23 @@ class _NearMeScreenState extends State<NearMeScreen> {
   }
 
   void _toast(String m) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m))); }
+
+  Future<void> _swipeCurrent(String kind) async {
+    if (_swiping || _index >= _results.length) return;
+    final person = _results[_index] as Map<String, dynamic>;
+    setState(() => _swiping = true);
+    try {
+      final result = await widget.state.api.post('/api/swipes', {'to_user': person['id'], 'kind': kind});
+      if (!mounted) return;
+      if (result['matched'] == true) _toast('حدث توافق جديد! 🎉');
+      else if (kind == 'like') _toast('تم إرسال الإعجاب');
+      setState(() => _index++);
+    } catch (e) {
+      _toast(errorText(e));
+    } finally {
+      if (mounted) setState(() => _swiping = false);
+    }
+  }
 
   Future<void> _rewind() async {
     try { await widget.state.api.post('/api/swipes/rewind', {}); _toast('تم التراجع'); await _load(); } catch (e) { _toast(errorText(e)); }
@@ -84,17 +102,17 @@ class _NearMeScreenState extends State<NearMeScreen> {
                 ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('تعذّر التحميل ($_error)'), TextButton(onPressed: _load, child: const Text('إعادة المحاولة'))]))
                 : _index >= _results.length
                     ? const Center(child: Text('لا يوجد أعضاء ضمن هذا النطاق. جرّب مسافة أكبر.'))
-                    : _Card(data: _results[_index] as Map<String, dynamic>, onNext: () => setState(() => _index++), api: s.api),
+                    : _Card(data: _results[_index] as Map<String, dynamic>, onNext: (kind) => _swipeCurrent(kind), busy: _swiping),
       ),
     ]);
   }
 }
 
 class _Card extends StatelessWidget {
-  const _Card({required this.data, required this.onNext, required this.api});
+  const _Card({required this.data, required this.onNext, required this.busy});
   final Map<String, dynamic> data;
-  final VoidCallback onNext;
-  final ApiClient api;
+  final ValueChanged<String> onNext;
+  final bool busy;
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -116,11 +134,11 @@ class _Card extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          IconButton.filledTonal(onPressed: onNext, icon: const Icon(Icons.close_rounded), iconSize: 28),
+          IconButton.filledTonal(onPressed: busy ? null : () => onNext('pass'), icon: const Icon(Icons.close_rounded), iconSize: 28),
           const SizedBox(width: 18),
-          IconButton.filled(onPressed: () async { try { await api.post('/api/swipes', {'to_user': data['id'], 'kind': 'like'}); } catch (e) { if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(e)))); return; } onNext(); }, icon: const Icon(Icons.favorite_rounded), iconSize: 32),
+          IconButton.filled(onPressed: busy ? null : () => onNext('like'), icon: const Icon(Icons.favorite_rounded), iconSize: 32),
           const SizedBox(width: 18),
-          IconButton.filledTonal(onPressed: () async { await api.post('/api/swipes', {'to_user': data['id'], 'kind': 'super_like'}); onNext(); }, icon: const Icon(Icons.star_rounded), iconSize: 28),
+          IconButton.filledTonal(onPressed: busy ? null : () => onNext('super_like'), icon: const Icon(Icons.star_rounded), iconSize: 28),
         ]),
       ]),
     );
