@@ -78,3 +78,7 @@ Current PR remains a draft and is not merged: https://github.com/ibrahemahmedabd
 - Release script now requires per-app upload key files, verifies the Gradle release signing configuration, validates signed APK/AAB outputs, and restores any pre-existing local key.properties files after build.
 - GitHub Actions now limits branch push checks to main, runs PR checks against main, and cancels stale runs to reduce duplicate queueing.
 - Latest head at this update: `3621e1fe2b1bd81da131c16eb563eba23b499627`. Backend and mobile CI jobs are still queued; Vercel preview deployments currently correspond to older commits only.
+
+- UMP privacy-options visibility now refreshes when consent state finishes loading, so the required entry point is not missed by an early profile render.
+- Rewarded ad presentation now releases its in-flight lock and completes safely if the SDK rejects the show call.
+- Current branch head: `6d78bd3f5ac50872bc07b7e9c55b43f5405d916e`. Latest mobile/backend Actions runs have been queued; earlier runs were cancelled by the stale-run concurrency rule. No final-head green CI result is available yet.
