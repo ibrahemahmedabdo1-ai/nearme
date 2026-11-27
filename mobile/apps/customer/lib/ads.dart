@@ -8,6 +8,9 @@ import 'package:near_me_core/near_me_core.dart';
 const _bannerId = String.fromEnvironment('ADMOB_BANNER_ID', defaultValue: 'ca-app-pub-3940256099942544/6300978111');
 const _rewardedId = String.fromEnvironment('ADMOB_REWARDED_ID', defaultValue: 'ca-app-pub-3940256099942544/5224354917');
 const _interstitialId = String.fromEnvironment('ADMOB_INTERSTITIAL_ID', defaultValue: 'ca-app-pub-3940256099942544/1033173712');
+const _nativeId = String.fromEnvironment('ADMOB_NATIVE_ID', defaultValue: 'ca-app-pub-3940256099942544/2247696110');
+const _appOpenId = String.fromEnvironment('ADMOB_APP_OPEN_ID', defaultValue: 'ca-app-pub-3940256099942544/5662855259');
+const _rewardedInterstitialId = String.fromEnvironment('ADMOB_REWARDED_INTERSTITIAL_ID', defaultValue: 'ca-app-pub-3940256099942544/5354046379');
 
 class AdService extends ChangeNotifier {
   AdService._();
@@ -21,6 +24,11 @@ class AdService extends ChangeNotifier {
   final Map<String, int> _sessionImpressions = {};
   int _eligibleTransitionsSinceInterstitial = 0;
   bool _rewardedInFlight = false;
+  AppOpenAd? _appOpen;
+  bool _appOpenLoading = false;
+  RewardedInterstitialAd? _rewardedInterstitial;
+  bool _rewardedInterstitialLoading = false;
+  final Map<String, DateTime> _lastPlacementImpression = {};
   List<dynamic> placements = const [];
 
   bool get ready => _ready;
@@ -43,6 +51,8 @@ class AdService extends ChangeNotifier {
       _initialized = true;
       notifyListeners();
       _preload();
+      _preloadAppOpen();
+      _preloadRewardedInterstitial();
     } catch (_) {
       // Keep ads disabled if consent or SDK initialization cannot be verified.
       _ready = false;
@@ -103,6 +113,8 @@ class AdService extends ChangeNotifier {
       _ready = true;
       _initialized = true;
       _preload();
+      _preloadAppOpen();
+      _preloadRewardedInterstitial();
     }
     notifyListeners();
   }
@@ -116,13 +128,18 @@ class AdService extends ChangeNotifier {
 
   bool enabled(String placement) => _ready && (_p(placement)?['enabled'] == true);
   int _max(String placement) => (_p(placement)?['max_per_session'] as int?) ?? 0;
-  bool canShow(String placement) =>
-      enabled(placement) &&
-      _max(placement) > 0 &&
-      (_sessionImpressions[placement] ?? 0) < _max(placement);
+  bool canShow(String placement) {
+    if (!enabled(placement) || _max(placement) <= 0 ||
+        (_sessionImpressions[placement] ?? 0) >= _max(placement)) return false;
+    final p = _p(placement);
+    final minGap = (p?['min_gap_sec'] as num?)?.toInt() ?? 0;
+    final last = _lastPlacementImpression[placement];
+    return last == null || DateTime.now().difference(last).inSeconds >= minGap;
+  }
 
   void recordImpression(String placement) {
     _sessionImpressions[placement] = (_sessionImpressions[placement] ?? 0) + 1;
+    _lastPlacementImpression[placement] = DateTime.now();
   }
 
   void _preload() {
@@ -135,6 +152,81 @@ class AdService extends ChangeNotifier {
         onAdFailedToLoad: (_) => _loaded = null,
       ),
     );
+  }
+
+
+  void _preloadAppOpen() {
+    if (!canShow('app_open') || _appOpen != null || _appOpenLoading) return;
+    _appOpenLoading = true;
+    AppOpenAd.load(
+      adUnitId: _appOpenId,
+      request: const AdRequest(),
+      adLoadCallback: AppOpenAdLoadCallback(
+        onAdLoaded: (ad) { _appOpen = ad; _appOpenLoading = false; },
+        onAdFailedToLoad: (_) { _appOpen = null; _appOpenLoading = false; },
+      ),
+    );
+  }
+
+  /// App-open ads are shown only on a return from background, never over a private chat,
+  /// authentication, support, verification, appeal, or safety workflow.
+  void onForegroundReturn({required String currentScreen}) {
+    if (!canShow('app_open') || _appOpen == null ||
+        !adAllowed(screen: currentScreen, format: 'app_open', isTransition: false)) {
+      _preloadAppOpen();
+      return;
+    }
+    final ad = _appOpen!;
+    _appOpen = null;
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdImpression: (_) => recordImpression('app_open'),
+      onAdDismissedFullScreenContent: (a) { a.dispose(); _preloadAppOpen(); },
+      onAdFailedToShowFullScreenContent: (a, _) { a.dispose(); _preloadAppOpen(); },
+    );
+    ad.show();
+  }
+
+  void _preloadRewardedInterstitial() {
+    if (!canShow('rewarded_interstitial_cosmetic') ||
+        _rewardedInterstitial != null || _rewardedInterstitialLoading) return;
+    _rewardedInterstitialLoading = true;
+    RewardedInterstitialAd.load(
+      adUnitId: _rewardedInterstitialId,
+      request: const AdRequest(),
+      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
+        onAdLoaded: (ad) { _rewardedInterstitial = ad; _rewardedInterstitialLoading = false; },
+        onAdFailedToLoad: (_) { _rewardedInterstitial = null; _rewardedInterstitialLoading = false; },
+      ),
+    );
+  }
+
+  /// Separate opt-in format from standard Rewarded; the user must press its dedicated button.
+  Future<bool> showRewardedInterstitial() async {
+    if (!canShow('rewarded_interstitial_cosmetic') ||
+        _rewardedInFlight || _rewardedInterstitial == null) return false;
+    _rewardedInFlight = true;
+    final ad = _rewardedInterstitial!;
+    _rewardedInterstitial = null;
+    final done = Completer<bool>();
+    var earned = false;
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdImpression: (_) => recordImpression('rewarded_interstitial_cosmetic'),
+      onAdDismissedFullScreenContent: (a) {
+        a.dispose(); _rewardedInFlight = false; _preloadRewardedInterstitial();
+        if (!done.isCompleted) done.complete(earned);
+      },
+      onAdFailedToShowFullScreenContent: (a, _) {
+        a.dispose(); _rewardedInFlight = false; _preloadRewardedInterstitial();
+        if (!done.isCompleted) done.complete(false);
+      },
+    );
+    try {
+      await ad.show(onUserEarnedReward: (_, __) => earned = true);
+    } catch (_) {
+      ad.dispose(); _rewardedInFlight = false; _preloadRewardedInterstitial();
+      if (!done.isCompleted) done.complete(false);
+    }
+    return done.future;
   }
 
   /// Optional, explicitly user-initiated rewarded ad. The reward is non-cash cosmetic only.
@@ -288,4 +380,76 @@ class _NmBannerState extends State<NmBanner> {
           ),
         )
       : const SizedBox.shrink();
+}
+
+
+/// Native feed ad. A single, clearly labeled ad is inserted between organic discovery cards.
+class NmNativeAd extends StatefulWidget {
+  const NmNativeAd({super.key, this.placement = 'discovery_native'});
+  final String placement;
+  @override
+  State<NmNativeAd> createState() => _NmNativeAdState();
+}
+
+class _NmNativeAdState extends State<NmNativeAd> {
+  NativeAd? _ad;
+  bool _loaded = false;
+  bool _attempted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    AdService.instance.addListener(_serviceChanged);
+    _tryLoad();
+  }
+
+  void _serviceChanged() {
+    if (!AdService.instance.ready && _ad != null) {
+      _ad!.dispose(); _ad = null;
+      if (mounted) setState(() => _loaded = false);
+    } else {
+      _tryLoad();
+    }
+  }
+
+  void _tryLoad() {
+    if (!mounted || _attempted || !AdService.instance.ready ||
+        !AdService.instance.canShow(widget.placement)) return;
+    _attempted = true;
+    _ad = NativeAd(
+      adUnitId: _nativeId,
+      request: const AdRequest(),
+      listener: NativeAdListener(
+        onAdLoaded: (_) { if (mounted) setState(() => _loaded = true); },
+        onAdImpression: (_) => AdService.instance.recordImpression(widget.placement),
+        onAdFailedToLoad: (ad, _) { ad.dispose(); _ad = null; },
+      ),
+      nativeTemplateStyle: NativeTemplateStyle(templateType: TemplateType.medium),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    AdService.instance.removeListener(_serviceChanged);
+    _ad?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_ad == null || !_loaded) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(bottom: 12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Padding(
+          padding: EdgeInsetsDirectional.only(start: 8, bottom: 4),
+          child: Text('إعلان', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+        ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: SizedBox(height: 280, child: AdWidget(ad: _ad!)),
+        ),
+      ]),
+    );
+  }
 }
