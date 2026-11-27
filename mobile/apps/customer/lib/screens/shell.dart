@@ -17,10 +17,30 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> with WidgetsBindingObserver {
   int _i = 2;
+  bool _wasBackgrounded = false;
   @override
-  void initState() { super.initState(); widget.state.startPresence(); }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    widget.state.startPresence();
+  }
   @override
-  void dispose() { widget.state.stopPresence(); super.dispose(); }
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.detached) {
+      _wasBackgrounded = true;
+    } else if (state == AppLifecycleState.resumed && _wasBackgrounded) {
+      _wasBackgrounded = false;
+      AdService.instance.onForegroundReturn(
+        currentScreen: const ['chat_list', 'home', 'near_me', 'profile'][_i],
+      );
+    }
+  }
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    widget.state.stopPresence();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     final pages = [ChatsScreen(state: widget.state), HomeScreen(state: widget.state), NearMeScreen(state: widget.state), ProfileScreen(state: widget.state)];
