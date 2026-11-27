@@ -10,8 +10,8 @@ Technical
 Policies
 - [ ] Privacy Policy URL (`/privacy`) filled with legal name/contact. [ ] Terms (`/terms`). [ ] Community Guidelines page (add from legal/COMMUNITY_GUIDELINES.md).
 - [ ] Account deletion: in-app (Profile → Delete account) **and** web URL `/delete-account` entered in Data safety.
-- [ ] Child Safety Standards: published CSAE prohibition (`/child-safety`), in-app reporting (done), designated contact, self-certify in Play Console for Social/Dating.
-- [ ] UGC: terms acceptance at signup (done), report + block (done), moderation by humans (Admin/Support), objectionable content defined in Community Guidelines.
+- [ ] Child Safety Standards page (`/child-safety`) exists as a template; CSAE reporting categories are implemented, but the designated monitored contact, staffed escalation process, and Play Console self-certification remain outstanding.
+- [ ] UGC: signup terms acceptance, report + block, and Community Guidelines are implemented in code; verify end-to-end human moderation coverage, response times, content removal, and appeals before launch.
 - [ ] Dating: use Play Console "Restrict minor access" / age-based blocking since dating is the primary function; keep in-app 18+ gate (done). No sugar-dating/compensated arrangements — enforce in rules.
 - [ ] Ads: declare "contains ads"; AdMob app IDs; UMP consent flow for EEA/UK; no ads in chat/safety (enforced in policy code); no accidental-click design.
 - [ ] Data safety form: location (approx), personal info, photos, messages, device IDs (install id hash, AD_ID), security events. Must match actual behavior.
@@ -38,3 +38,7 @@ Official references:
 - Age-restricted functionality: https://support.google.com/googleplay/android-developer/answer/16302250
 - UMP Flutter setup: https://developers.google.com/admob/flutter/privacy
 - AdMob invalid traffic: https://support.google.com/admob/answer/3342054
+
+- [x] Ad impression caps now increment on actual AdMob impression callbacks for Banner, Interstitial, and Rewarded formats (not merely when an ad loads).
+- [x] Ad display policy now blocks authentication, registration, onboarding, support, ticketing, moderation, child-safety, appeals, and all previously excluded safety flows in both backend and Flutter policy mirrors.
+- [x] Release build script validates that each of the three apps has its own upload keystore and key.properties file before starting; temporary staged properties are removed on exit.
