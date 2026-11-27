@@ -76,7 +76,7 @@ class _AdsPageState extends State<AdsPage> {
                 Slider(
                   value: ((p['min_gap_sec'] as num?)?.toDouble() ?? 120).clamp((p['safety_min_gap_sec'] as num?)?.toDouble() ?? 0, 3600).toDouble(),
                   min: (p['safety_min_gap_sec'] as num?)?.toDouble() ?? 0,
-                  max: 3600,
+                  max: ((p['safety_min_gap_sec'] as num?)?.toDouble() ?? 0) + 3600,
                   divisions: 120,
                   label: '${p['min_gap_sec']}ث',
                   onChanged: _saving ? null : (v) => setState(() => p['min_gap_sec'] = (v / 30).round() * 30 < ((p['safety_min_gap_sec'] as num?)?.toInt() ?? 0) ? (p['safety_min_gap_sec'] as num).toInt() : (v / 30).round() * 30),
