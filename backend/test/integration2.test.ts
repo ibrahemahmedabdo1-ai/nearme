@@ -54,7 +54,7 @@ test("presence and typing respect privacy and conversation membership", async ()
 });
 
 test("rewind (5 minutes, not after a match) and boost (once per 24h, sorted first)", async () => {
-  const a = await newUser("rwA"), b = await newUser("rwB"), c = await newUser("rwC");
+  const a = await newUser("rwA"), b = await newUser("rwB"), c = await newUser("rwC"), d = await newUser("rwD");
   await call("swipes", "POST", { token: a.token, body: { to_user: b.id, kind: "pass" } });
   assert.equal((await call("swipes/rewind", "POST", { token: a.token })).body.restored_user, b.id);
   assert.equal((await call("swipes/rewind", "POST", { token: a.token })).status, 404);
@@ -63,9 +63,11 @@ test("rewind (5 minutes, not after a match) and boost (once per 24h, sorted firs
   assert.equal((await call("swipes/rewind", "POST", { token: a.token })).status, 409);
   await call("swipes", "POST", { token: b.token, body: { to_user: c.id, kind: "like" } }); await call("swipes", "POST", { token: c.token, body: { to_user: b.id, kind: "like" } });
   assert.equal((await call("swipes/rewind", "POST", { token: b.token })).status, 409);   // matched
-  assert.equal((await call("boost", "POST", { token: c.token })).status, 201);
-  assert.equal((await call("boost", "POST", { token: c.token })).status, 429);
-  const res = (await call("discover", "GET", { token: a.token, query: "?radius=all" })).body.results; assert.equal(res[0].id, c.id);
+  assert.equal((await call("boost", "POST", { token: d.token })).status, 201);
+  assert.equal((await call("boost", "POST", { token: d.token })).status, 429);
+  const res = (await call("discover", "GET", { token: a.token, query: "?radius=all" })).body.results;
+  assert.ok(!res.some((p: any) => p.id === c.id), "a passed profile must not reappear after the rewind window");
+  assert.equal(res[0].id, d.id);
 });
 
 test("owner-controlled matching weights are validated and audited", async () => {
