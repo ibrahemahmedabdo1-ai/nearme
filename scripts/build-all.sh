@@ -38,6 +38,12 @@ for app in customer admin support; do
   [ -n "$STORE_FILE" ] && [ -f "$STORE_FILE" ] || { echo "::error::Upload keystore missing for $app."; exit 1; }
   if [ -f "$d/android/key.properties" ]; then cp "$d/android/key.properties" "$STAGE_DIR/$app.key.properties"; fi
   cp "$KEY_PROPS" "$d/android/key.properties"
+  GRADLE_FILE="$d/android/app/build.gradle.kts"
+  [ -f "$GRADLE_FILE" ] || GRADLE_FILE="$d/android/app/build.gradle"
+  grep -Eq 'signingConfig.*release|signingConfig = signingConfigs.getByName\("release"\)' "$GRADLE_FILE" || {
+    echo "::error::Release signing is not configured in $GRADLE_FILE. Re-run bootstrap or follow docs/ANDROID_SIGNING.md."
+    exit 1
+  }
   (
     cd "$d"
     flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -62,6 +68,9 @@ for app in customer admin support; do
   )
   cp "$d/build/app/outputs/flutter-apk/app-release.apk" "$DIST/nearme-$app.apk"
   cp "$d/build/app/outputs/bundle/release/app-release.aab" "$DIST/nearme-$app.aab"
+  command -v apksigner >/dev/null || { echo "::error::Android build-tools apksigner is required to verify APK signatures."; exit 1; }
+  apksigner verify --verbose "$DIST/nearme-$app.apk"
+  jarsigner -verify -certs "$DIST/nearme-$app.aab" >/dev/null
   [ -f "$d/build/app/outputs/mapping/release/mapping.txt" ] && cp "$d/build/app/outputs/mapping/release/mapping.txt" "$DIST/mapping-$app.txt" || true
 done
 
