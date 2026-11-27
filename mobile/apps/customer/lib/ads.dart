@@ -20,6 +20,7 @@ class AdService extends ChangeNotifier {
   InterstitialAd? _loaded;
   final Map<String, int> _sessionImpressions = {};
   int _eligibleTransitionsSinceInterstitial = 0;
+  bool _rewardedInFlight = false;
   List<dynamic> placements = const [];
 
   bool get ready => _ready;
@@ -132,7 +133,8 @@ class AdService extends ChangeNotifier {
 
   /// Optional, explicitly user-initiated rewarded ad. The reward is non-cash cosmetic only.
   Future<bool> showRewarded() async {
-    if (!canShow('rewarded_cosmetic')) return false;
+    if (!canShow('rewarded_cosmetic') || _rewardedInFlight) return false;
+    _rewardedInFlight = true;
     final done = Completer<bool>();
     RewardedAd.load(
       adUnitId: _rewardedId,
@@ -141,19 +143,23 @@ class AdService extends ChangeNotifier {
         onAdLoaded: (ad) {
           var earned = false;
           ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdShowedFullScreenContent: (_) => recordImpression('rewarded_cosmetic'),
-            onAdDismissedFullScreenContent: (a) {
+            onAdImpression: (_) => recordImpression('rewarded_cosmetic'),
+            onAdImpression: (_) => recordImpression('tab_transition'),
+      onAdDismissedFullScreenContent: (a) {
               a.dispose();
+              _rewardedInFlight = false;
               if (!done.isCompleted) done.complete(earned);
             },
             onAdFailedToShowFullScreenContent: (a, _) {
               a.dispose();
+              _rewardedInFlight = false;
               if (!done.isCompleted) done.complete(false);
             },
           );
           ad.show(onUserEarnedReward: (_, __) => earned = true);
         },
         onAdFailedToLoad: (_) {
+          _rewardedInFlight = false;
           if (!done.isCompleted) done.complete(false);
         },
       ),
@@ -236,11 +242,9 @@ class _NmBannerState extends State<NmBanner> {
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (_) {
-          if (mounted) {
-            AdService.instance.recordImpression(widget.placement);
-            setState(() => _loaded = true);
-          }
+          if (mounted) setState(() => _loaded = true);
         },
+        onAdImpression: (_) => AdService.instance.recordImpression(widget.placement),
         onAdFailedToLoad: (ad, _) {
           ad.dispose();
           _ad = null;
