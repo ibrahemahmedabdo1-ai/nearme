@@ -33,17 +33,53 @@ class OccasionsPage extends StatelessWidget {
   }
 }
 
-/// AdMob placements (Owner): enable/disable and tune frequency. Only fixed placements exist; never on chat/auth/safety screens.
-class AdsPage extends StatelessWidget {
+/// AdMob placements (Owner): fixed inventory, consent-aware, with configurable frequency and session caps.
+class AdsPage extends StatefulWidget {
   const AdsPage({super.key, required this.api});
   final ApiClient api;
   @override
-  Widget build(BuildContext context) => SubPage(title: 'الإعلانات (AdMob)', child: ApiList(api: api, path: '/api/admin/ads', keyName: 'placements', tile: (c, p, reload) => SwitchListTile(
-        title: Text('${p['placement']} · ${p['format']}'), subtitle: Text('الفاصل الأدنى ${p['min_gap_sec']}ث · حد الجلسة ${p['max_per_session']}'), value: p['enabled'] == true,
-        onChanged: (v) async { await run(c, () => api.put('/api/admin/ads', {'placement': p['placement'], 'enabled': v})); await reload(); },
-      )));
+  State<AdsPage> createState() => _AdsPageState();
 }
 
+class _AdsPageState extends State<AdsPage> {
+  List<Map<String, dynamic>> _placements = [];
+  bool _loading = true, _saving = false;
+  String? _error;
+  @override
+  void initState() { super.initState(); _load(); }
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final d = await widget.api.get('/api/admin/ads');
+      if (mounted) setState(() => _placements = (d['placements'] as List<dynamic>).cast<Map<String, dynamic>>());
+    } catch (e) { if (mounted) setState(() => _error = e is ApiException ? e.code : 'network'); }
+    finally { if (mounted) setState(() => _loading = false); }
+  }
+  Future<void> _save(Map<String, dynamic> p) async {
+    setState(() => _saving = true);
+    try {
+      await widget.api.put('/api/admin/ads', {'placement': p['placement'], 'enabled': p['enabled'], 'min_gap_sec': p['min_gap_sec'], 'max_per_session': p['max_per_session']});
+      if (mounted) toast(context, 'تم حفظ إعدادات ${p['placement']}');
+    } catch (e) { if (mounted) toast(context, e is ApiException ? e.code : 'network'); }
+    finally { if (mounted) setState(() => _saving = false); }
+  }
+  @override
+  Widget build(BuildContext context) => SubPage(title: 'الإعلانات (AdMob)', child: _loading
+      ? const Center(child: CircularProgressIndicator())
+      : _error != null
+          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('تعذر تحميل الإعلانات: $_error'), TextButton(onPressed: _load, child: const Text('إعادة المحاولة'))]))
+          : ListView(padding: const EdgeInsets.all(16), children: [
+              const Text('أماكن ثابتة فقط. الإعلانات لا تظهر في المحادثات أو التسجيل أو التوثيق أو الدعم أو الأمان.', style: TextStyle(fontSize: 12)),
+              for (final p in _placements) Card(margin: const EdgeInsets.only(top: 12), child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SwitchListTile(contentPadding: EdgeInsets.zero, title: Text('${p['placement']} · ${p['format']}'), subtitle: Text(p['enabled'] == true ? 'مفعّل' : 'متوقف'), value: p['enabled'] == true, onChanged: _saving ? null : (v) => setState(() => p['enabled'] = v)),
+                Text('الفاصل الأدنى: ${p['min_gap_sec']} ثانية'),
+                Slider(value: ((p['min_gap_sec'] as num?)?.toDouble() ?? 120).clamp(30, 3600), min: 30, max: 3600, divisions: 119, label: '${p['min_gap_sec']}ث', onChanged: _saving ? null : (v) => setState(() => p['min_gap_sec'] = (v / 30).round() * 30)),
+                Text('الحد الأقصى لكل جلسة: ${p['max_per_session']} ظهور'),
+                Slider(value: ((p['max_per_session'] as num?)?.toDouble() ?? 3).clamp(0, 20), min: 0, max: 20, divisions: 20, label: '${p['max_per_session']}', onChanged: _saving ? null : (v) => setState(() => p['max_per_session'] = v.round())),
+                Align(alignment: AlignmentDirectional.centerEnd, child: FilledButton(onPressed: _saving ? null : () => _save(p), child: const Text('حفظ إعدادات المكان'))),
+              ]))),
+            ]));
+}
 /// Matching weights (Admin+): how much each factor counts in the compatibility score.
 class WeightsPage extends StatefulWidget {
   const WeightsPage({super.key, required this.api});
