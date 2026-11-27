@@ -68,3 +68,13 @@ See `FEATURES.md`, `SECURITY.md`, `CONTINUATION.md`, and `REPAIR_AND_ADS_PLAN.md
 - No production APK/AAB has been generated or delivered from this branch; Debug APK CI artifacts, if produced, are not store-ready releases.
 
 Current PR remains a draft and is not merged: https://github.com/ibrahemahmedabdo1-ai/nearme/pull/2
+
+
+## Additional continuation work (2026-11-27)
+
+- AdMob requests are now capped globally at the PG content rating before SDK initialization. The publisher still must configure sensitive-category and advertiser controls in AdMob.
+- Banner, Interstitial, and Rewarded session caps now count actual impression callbacks, not successful loads.
+- Both backend and Flutter policy mirrors now prohibit ads in authentication, registration, onboarding, support/ticketing, moderation, child-safety, appeals, account deletion, and the existing safety flows. Backend and Flutter tests cover the expanded list.
+- Release script now requires per-app upload key files, verifies the Gradle release signing configuration, validates signed APK/AAB outputs, and restores any pre-existing local key.properties files after build.
+- GitHub Actions now limits branch push checks to main, runs PR checks against main, and cancels stale runs to reduce duplicate queueing.
+- Latest head at this update: `3621e1fe2b1bd81da131c16eb563eba23b499627`. Backend and mobile CI jobs are still queued; Vercel preview deployments currently correspond to older commits only.
