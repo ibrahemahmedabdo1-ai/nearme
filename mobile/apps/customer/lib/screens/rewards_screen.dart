@@ -8,7 +8,8 @@ class RewardsScreen extends StatefulWidget {
   final ApiClient api;
   final AppBuilderConfig builder;
   /// Provided by the app: shows an AdMob rewarded ad and resolves true when the user earned the reward.
-  final Future<bool> Function()? onWatchRewardedAd;\n  final Future<bool> Function()? onWatchRewardedInterstitialAd;
+  final Future<bool> Function()? onWatchRewardedAd;
+  final Future<bool> Function()? onWatchRewardedInterstitialAd;
   @override
   State<RewardsScreen> createState() => _RewardsScreenState();
 }
