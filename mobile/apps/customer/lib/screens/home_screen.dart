@@ -109,7 +109,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 8),
             OutlinedButton.icon(onPressed: _editProfile, icon: const Icon(Icons.edit_outlined), label: const Text('أكمل ملفك الشخصي')),
           ])),
-          for (final p in _people) _personCard(p),
+          for (var i = 0; i < _people.length; i++) ...[
+            _personCard(_people[i]),
+            if (i == 2) const NmNativeAd(),
+          ],
           const SizedBox(height: 12),
           const GlassCard(child: Text('تحدي اليوم: أرسل 3 تحيات واكسب مكافأة غير نقدية.')),
           const SizedBox(height: 12),
