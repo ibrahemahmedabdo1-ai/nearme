@@ -55,6 +55,8 @@ class AdService extends ChangeNotifier {
       () async {
         try {
           await ConsentForm.loadAndShowConsentFormIfRequired((_) {});
+        } catch (_) {
+          // Check canRequestAds() below; UMP may still have a valid prior-session choice.
         } finally {
           if (!updated.isCompleted) updated.complete();
         }
