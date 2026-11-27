@@ -55,7 +55,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           const SizedBox(height: 12),
           const Text('الأشخاص الذين تريد اكتشافهم'),
           const Text('عدم اختيار نوع يعني عرض جميع الأنواع المتاحة.'),
-          Wrap(spacing: 8, children: [for (final g in const {'male':'أولاد','female':'بنات','other':'آخر'}) FilterChip(label: Text(g.value), selected: _preferredGenders.contains(g.key), onSelected: (v) => setState(() { if (v) { _preferredGenders.add(g.key); } else { _preferredGenders.remove(g.key); } }))]),
+          Wrap(spacing: 8, children: [for (final g in const {'male':'أولاد','female':'بنات','other':'آخر'}.entries) FilterChip(label: Text(g.value), selected: _preferredGenders.contains(g.key), onSelected: (v) => setState(() { if (v) { _preferredGenders.add(g.key); } else { _preferredGenders.remove(g.key); } }))]),
           TextField(controller: _bio, maxLength: 500, maxLines: 4, decoration: const InputDecoration(labelText: 'نبذة عنك')),
           const SizedBox(height: 8), const Text('الاهتمامات (حتى 10)'),
           Wrap(spacing: 8, children: [for (final i in _all) FilterChip(label: Text('${i['name_ar']}'), selected: _sel.contains(i['slug']), onSelected: (v) => setState(() { if (v && _sel.length < 10) { _sel.add(i['slug'] as String); } else if (!v) { _sel.remove(i['slug']); } }))]),
