@@ -1,6 +1,6 @@
 import { handle, json, auth, body, str, guardMode, HttpError, rateLimit } from "@/lib/http";
 import { q } from "@/lib/db";
-const KINDS = ["text", "image", "gif", "sticker", "file", "location"];
+const KINDS = ["text", "image", "gif", "sticker", "file"];
 async function loadConv(id: string, me: string) {
   const conv = (await q<any>("SELECT * FROM conversations WHERE id=$1 AND ($2 IN (user_a,user_b))", [id, me]))[0];
   if (!conv) throw new HttpError(404, "not_found");
