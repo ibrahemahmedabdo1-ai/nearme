@@ -16,7 +16,7 @@ class AdService {
   DateTime? _lastInterstitial;
   InterstitialAd? _loaded;
   final Map<String, int> _sessionImpressions = {};
-  int _eligibleTransitionsSinceInterstitial = 2;
+  int _eligibleTransitionsSinceInterstitial = 0;
   List<dynamic> placements = const []; // from /api/config -> ads (Owner-controlled)
 
   /// Call after the UMP consent flow. Ads are never requested before consent info is resolved.
