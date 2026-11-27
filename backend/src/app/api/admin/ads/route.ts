@@ -37,7 +37,7 @@ export const PUT = handle(async (r) => {
   const b = await body(r, x => {
     if (typeof x.placement !== "string") throw new Error("invalid_placement");
     if (x.enabled !== undefined && typeof x.enabled !== "boolean") throw new Error("invalid_enabled");
-    if (x.min_gap_sec !== undefined && (!Number.isInteger(x.min_gap_sec) || x.min_gap_sec < 0 || x.min_gap_sec > 3600)) throw new Error("invalid_min_gap_sec");
+    if (x.min_gap_sec !== undefined && (!Number.isInteger(x.min_gap_sec) || x.min_gap_sec < 0 || x.min_gap_sec > 86400)) throw new Error("invalid_min_gap_sec");
     if (x.max_per_session !== undefined && (!Number.isInteger(x.max_per_session) || x.max_per_session < 0 || x.max_per_session > 20)) throw new Error("invalid_max_per_session");
     return x as { placement: string; enabled?: boolean; min_gap_sec?: number; max_per_session?: number };
   });
