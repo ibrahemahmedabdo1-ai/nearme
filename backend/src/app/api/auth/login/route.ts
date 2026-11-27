@@ -19,7 +19,7 @@ export const POST = handle(async (r) => {
   if (u.status === "banned" || u.status === "deleted") throw new HttpError(403, "account_unavailable");
   // Re-check stored age on every customer login, including accounts created before the age gate.
   if (u.role === "customer") {
-    const birth = u.birthdate instanceof Date ? u.birthdate : new Date(`${u.birthdate}T00:00:00Z`);
+    const birth = u.birthdate instanceof Date ? u.birthdate : new Date(`${String(u.birthdate).slice(0, 10)}T00:00:00Z`);
     if (!u.birthdate || Number.isNaN(birth.getTime()) || !isAdult(birth)) {
       throw new HttpError(403, "age_restricted");
     }
