@@ -15,12 +15,12 @@ This branch contains focused fixes discovered during the GitHub audit. It does n
 
 Do not delete, rename, silently move, or bypass the existing ad system.
 
-The fixed Owner-controlled placements remain:
+The currently implemented Owner-controlled placements are:
 - `home_feed`: banner, shown only when enabled by the Owner.
 - `tab_transition`: interstitial, only at a natural tab transition and subject to the configured minimum gap.
 - `rewarded_cosmetic`: optional, user-initiated rewarded ad for non-cash cosmetic rewards only.
 
-All placements are disabled by default. The Owner controls enabled state, minimum gap, and maximum impressions per session through the existing ad configuration API.
+All placements are disabled by default. The Owner can disable placements or choose lower delivery limits. Server-side hard caps cannot be raised remotely: Banner is capped at 4 impressions/session with a 120-second minimum gap; Interstitial at 3/session with a 180-second minimum gap (and at least two eligible tab transitions); Rewarded at 5/session and remains explicitly user-initiated. The Admin screen displays these non-overridable safety limits. The other three AdMob units created in the publisher account (Native, App Open, and Rewarded Interstitial) are reserved for a separate SDK/UI integration and must not be described as active until that implementation and its tests are complete.
 
 Ads must never appear in chat threads, authentication/onboarding, PIN lock, verification, appeals, support, reporting, blocking, account deletion, or safety flows. Never add ads to these screens as part of a redesign. Rewarded ads must remain optional and must not gate essential functionality, matching, messaging, or account safety.
 
@@ -69,3 +69,11 @@ A policy checklist is not a substitute for reviewing the actual app, SDK disclos
 - The Customer app now exposes the UMP privacy-options entry point only when UMP reports that it is required. The ad service also waits for consent resolution, fails closed on a consent timeout, and notifies banner placements when consent becomes available so they can load safely.
 - The Customer ad service continues to use the fixed Owner-controlled placements and per-session caps. Rewarded impressions are counted when the full-screen ad is actually shown.
 - The GitHub mobile workflow currently builds DEBUG APKs only. The signed-release job remains disabled until the Owner configures secure signing secrets and production AdMob IDs; do not describe debug APKs as store-ready releases.
+
+
+## Ad delivery hardening added after the initial audit
+
+- The Admin API now enforces non-overridable per-placement frequency ceilings and minimum gaps on the server, rather than trusting only the Admin UI.
+- Owner controls now display the hard safety ceilings returned by the server. Attempts to configure higher frequency are clamped to the policy limit.
+- The account currently has six AdMob ad units, but only Banner, Interstitial, and Rewarded are wired in the Customer client. Native, App Open, and Rewarded Interstitial remain explicitly unintegrated; they require their own UI lifecycle, consent-aware load/show behavior, format-specific frequency controls, and tests before activation.
+- Chat threads remain excluded. Do not place AdMob inventory in direct private messaging; this restriction is intentional to avoid policy risk.
