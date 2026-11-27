@@ -20,11 +20,11 @@ The currently implemented Owner-controlled placements are:
 - `tab_transition`: interstitial, only at a natural tab transition and subject to the configured minimum gap.
 - `rewarded_cosmetic`: optional, user-initiated rewarded ad for non-cash cosmetic rewards only.
 
-All placements are disabled by default. The Owner can disable placements or choose lower delivery limits. Server-side hard caps cannot be raised remotely: Banner is capped at 4 impressions/session with a 120-second minimum gap; Interstitial at 3/session with a 180-second minimum gap (and at least two eligible tab transitions); Rewarded at 5/session and remains explicitly user-initiated. The Admin screen displays these non-overridable safety limits. The other three AdMob units created in the publisher account (Native, App Open, and Rewarded Interstitial) are reserved for a separate SDK/UI integration and must not be described as active until that implementation and its tests are complete.
+All six placements are disabled by default. The Owner can disable placements or choose lower delivery limits. Server-side hard caps cannot be raised remotely: Banner 4/session and 120-second gap; Native 3/session and 90-second gap; Interstitial 3/session and 180-second gap (plus two eligible tab transitions); Rewarded 5/session and user-initiated; App Open 1/session and 4-hour gap; Rewarded Interstitial 2/session and 5-minute gap. Admin displays the non-overridable limits.
 
 Ads must never appear in chat threads, authentication/onboarding, PIN lock, verification, appeals, support, reporting, blocking, account deletion, or safety flows. Never add ads to these screens as part of a redesign. Rewarded ads must remain optional and must not gate essential functionality, matching, messaging, or account safety.
 
-The app currently defaults to Google's official test ad unit IDs. Production release must use Owner-supplied production AdMob IDs through build-time configuration; never ship test IDs as production IDs.
+The app currently defaults to Google's official test ad unit IDs. Production release must use all six Owner-supplied production AdMob IDs through build-time configuration; never ship test IDs as production IDs.
 
 ## Verification still required
 
@@ -65,9 +65,9 @@ Official policy references reviewed on 2026-11-27:
 A policy checklist is not a substitute for reviewing the actual app, SDK disclosures, Play Console declarations, and live ad behavior. Google makes the final approval decision.
 
 - The Android bootstrap patch now uses the `ADMOB_APP_ID` Gradle manifest placeholder. Local/debug builds default to Google's official TEST app ID; production builds must inject the real app ID.
-- `scripts/verify-release-admob.sh` fails closed unless all four production identifiers are supplied and correctly formatted: `ADMOB_APP_ID`, `ADMOB_BANNER_ID`, `ADMOB_INTERSTITIAL_ID`, and `ADMOB_REWARDED_ID`. It rejects Google's test IDs and placeholders.
+- `scripts/verify-release-admob.sh` fails closed unless the app ID and all six production ad-unit IDs are supplied and correctly formatted. It rejects Google's test IDs and placeholders.
 - The Customer app now exposes the UMP privacy-options entry point only when UMP reports that it is required. The ad service also waits for consent resolution, fails closed on a consent timeout, and notifies banner placements when consent becomes available so they can load safely.
-- The Customer ad service continues to use the fixed Owner-controlled placements and per-session caps. Rewarded impressions are counted when the full-screen ad is actually shown.
+- The Customer ad service uses all six fixed Owner-controlled placements and records impressions from SDK impression callbacks. App Open is withheld until after the first few launches, expires cached ads after four hours, and persists its four-hour cooldown across app restarts.
 - The GitHub mobile workflow currently builds DEBUG APKs only. The signed-release job remains disabled until the Owner configures secure signing secrets and production AdMob IDs; do not describe debug APKs as store-ready releases.
 
 
@@ -76,7 +76,7 @@ A policy checklist is not a substitute for reviewing the actual app, SDK disclos
 - The Admin API now enforces non-overridable per-placement frequency ceilings and minimum gaps on the server, rather than trusting only the Admin UI.
 - Owner controls now display the hard safety ceilings returned by the server. Attempts to configure higher frequency are clamped to the policy limit.
 - The account currently has six AdMob ad units, but only Banner, Interstitial, and Rewarded are wired in the Customer client. Native, App Open, and Rewarded Interstitial remain explicitly unintegrated; they require their own UI lifecycle, consent-aware load/show behavior, format-specific frequency controls, and tests before activation.
-- Chat threads remain excluded. Do not place AdMob inventory in direct private messaging; this restriction is intentional to avoid policy risk.
+- Chat lists and private chat threads remain excluded. Do not place AdMob inventory in direct messaging; this restriction is intentional to avoid policy risk.
 
 
 ## Six-format AdMob implementation status (2026-11-27)
@@ -90,6 +90,6 @@ All six publisher-console units now have distinct client-side format integration
 - App Open `app_open`: only when returning from background on an eligible non-sensitive screen; hard cap 1/session and 4-hour minimum gap.
 - Rewarded Interstitial `rewarded_interstitial_cosmetic`: separate, explicit opt-in control in Rewards; non-cash cosmetic reward only; hard cap 2/session and 5-minute minimum gap.
 
-The SDK IDs are supplied through `--dart-define`; development defaults use Google's official test unit IDs. The Android application ID placeholder also defaults to Google's official test App ID. Production IDs must be passed only in release build configuration. Consent is resolved through UMP before SDK requests. No ad placement is permitted in private chat threads, authentication, support, verification, appeals, or safety flows.
+The six SDK unit IDs are supplied through `--dart-define`; development defaults use Google's official test unit IDs. `scripts/build-all.sh` now passes all six release unit IDs, and `scripts/verify-release-admob.sh` blocks release if any are missing or test IDs. The Android application ID placeholder also defaults to Google's official test App ID; set `ADMOB_APP_ID` in the build environment for production. Consent is resolved through UMP before SDK requests. No ad placement is permitted in private chat threads, authentication, support, verification, appeals, or safety flows.
 
 These integrations are code changes, not evidence of live ad serving. Keep placements disabled until UMP, test-device validation, the app's AdMob review, and Play release checks are complete.
