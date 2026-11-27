@@ -48,16 +48,16 @@ if man.exists():
         if perm not in m: m = m.replace("<application", perm + "\n    <application", 1)
     if app == "customer":
         if "com.google.android.gms.ads.APPLICATION_ID" not in m:
-            m = m.replace("</application>", '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${ADMOB_APP_ID}"/>\\n    </application>', 1)
+            m = m.replace("</application>", '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${ADMOB_APP_ID}"/>\n    </application>', 1)
         else:
-            m = re.sub(r'(<meta-data[^>]*android:name="com\\.google\\.android\\.gms\\.ads\\.APPLICATION_ID"[^>]*android:value=")[^"]*(")', r'\\1${ADMOB_APP_ID}\\2', m, count=1)
+            m = re.sub(r'(<meta-data[^>]*android:name="com\.google\.android\.gms\.ads\.APPLICATION_ID"[^>]*android:value=")[^"]*(")', r'\1${ADMOB_APP_ID}\2', m, count=1)
     man.write_text(m)
     # Use Google's TEST app ID by default for local/debug builds. Release must set ADMOB_APP_ID.
     if app == "customer" and "ADMOB_APP_ID" not in s:
         if kts:
-            s = re.sub(r"defaultConfig\\s*\\{", 'defaultConfig {\\n        manifestPlaceholders["ADMOB_APP_ID"] = System.getenv("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"', s, count=1)
+            s = re.sub(r"defaultConfig\s*\{", 'defaultConfig {\n        manifestPlaceholders["ADMOB_APP_ID"] = System.getenv("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"', s, count=1)
         else:
-            s = re.sub(r"defaultConfig\\s*\\{", "defaultConfig {\\n        manifestPlaceholders = [ADMOB_APP_ID: (System.getenv('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713')]", s, count=1)
+            s = re.sub(r"defaultConfig\s*\{", "defaultConfig {\n        manifestPlaceholders = [ADMOB_APP_ID: (System.getenv('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713')]", s, count=1)
         p.write_text(s)
 # FLAG_SECURE (screenshot/screen-recording protection) for customer app
 if app == "customer":
