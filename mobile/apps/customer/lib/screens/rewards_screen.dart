@@ -4,7 +4,7 @@ import 'package:near_me_core/near_me_core.dart';
 /// Daily challenges (progress is computed by the server), inventory + equip, received gifts, and the OPTIONAL rewarded ad.
 /// All rewards are free, non-cash cosmetics.
 class RewardsScreen extends StatefulWidget {
-  const RewardsScreen({super.key, required this.api, required this.builder, this.onWatchRewardedAd});
+  const RewardsScreen({super.key, required this.api, required this.builder, this.onWatchRewardedAd, this.onWatchRewardedInterstitialAd});
   final ApiClient api;
   final AppBuilderConfig builder;
   /// Provided by the app: shows an AdMob rewarded ad and resolves true when the user earned the reward.
