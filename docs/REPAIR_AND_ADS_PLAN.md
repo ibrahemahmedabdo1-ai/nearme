@@ -63,3 +63,9 @@ Official policy references reviewed on 2026-11-27:
 - AdMob invalid traffic: https://support.google.com/admob/answer/3342054
 
 A policy checklist is not a substitute for reviewing the actual app, SDK disclosures, Play Console declarations, and live ad behavior. Google makes the final approval decision.
+
+- The Android bootstrap patch now uses the `ADMOB_APP_ID` Gradle manifest placeholder. Local/debug builds default to Google's official TEST app ID; production builds must inject the real app ID.
+- `scripts/verify-release-admob.sh` fails closed unless all four production identifiers are supplied and correctly formatted: `ADMOB_APP_ID`, `ADMOB_BANNER_ID`, `ADMOB_INTERSTITIAL_ID`, and `ADMOB_REWARDED_ID`. It rejects Google's test IDs and placeholders.
+- The Customer app now exposes the UMP privacy-options entry point only when UMP reports that it is required. The ad service also waits for consent resolution, fails closed on a consent timeout, and notifies banner placements when consent becomes available so they can load safely.
+- The Customer ad service continues to use the fixed Owner-controlled placements and per-session caps. Rewarded impressions are counted when the full-screen ad is actually shown.
+- The GitHub mobile workflow currently builds DEBUG APKs only. The signed-release job remains disabled until the Owner configures secure signing secrets and production AdMob IDs; do not describe debug APKs as store-ready releases.
