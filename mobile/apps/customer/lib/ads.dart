@@ -172,7 +172,7 @@ class AdService extends ChangeNotifier {
   /// authentication, support, verification, appeal, or safety workflow.
   void onForegroundReturn({required String currentScreen}) {
     if (!canShow('app_open') || _appOpen == null ||
-        !adAllowed(screen: currentScreen, format: 'app_open', isTransition: false)) {
+        !adAllowed(screen: currentScreen, format: 'app_open', isTransition: true)) {
       _preloadAppOpen();
       return;
     }
@@ -338,7 +338,7 @@ class _NmBannerState extends State<NmBanner> {
   void _tryLoad() {
     if (!mounted || _attempted || !AdService.instance.ready) return;
     if (!adAllowed(screen: widget.screen, format: 'banner', isTransition: false) ||
-        !AdService.instance.canShow(widget.placement)) return;
+        !AdService.instance.canShow(widget.placement) ||\n        !adAllowed(screen: 'home', format: 'native', isTransition: false)) return;
     _attempted = true;
     _ad = BannerAd(
       adUnitId: _bannerId,
