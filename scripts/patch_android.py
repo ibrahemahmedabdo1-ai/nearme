@@ -46,9 +46,19 @@ if man.exists():
         perms += ['<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>', '<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>', '<uses-permission android:name="com.google.android.gms.permission.AD_ID"/>']
     for perm in perms:
         if perm not in m: m = m.replace("<application", perm + "\n    <application", 1)
-    if app == "customer" and "com.google.android.gms.ads.APPLICATION_ID" not in m:
-        m = m.replace("</application>", '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-3940256099942544~3347511713"/>  <!-- Google TEST app id: replace with YOUR AdMob app id before release -->\n    </application>', 1)
+    if app == "customer":
+        if "com.google.android.gms.ads.APPLICATION_ID" not in m:
+            m = m.replace("</application>", '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${ADMOB_APP_ID}"/>\\n    </application>', 1)
+        else:
+            m = re.sub(r'(<meta-data[^>]*android:name="com\\.google\\.android\\.gms\\.ads\\.APPLICATION_ID"[^>]*android:value=")[^"]*(")', r'\\1${ADMOB_APP_ID}\\2', m, count=1)
     man.write_text(m)
+    # Use Google's TEST app ID by default for local/debug builds. Release must set ADMOB_APP_ID.
+    if app == "customer" and "ADMOB_APP_ID" not in s:
+        if kts:
+            s = re.sub(r"defaultConfig\\s*\\{", 'defaultConfig {\\n        manifestPlaceholders["ADMOB_APP_ID"] = System.getenv("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"', s, count=1)
+        else:
+            s = re.sub(r"defaultConfig\\s*\\{", "defaultConfig {\\n        manifestPlaceholders = [ADMOB_APP_ID: (System.getenv('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713')]", s, count=1)
+        p.write_text(s)
 # FLAG_SECURE (screenshot/screen-recording protection) for customer app
 if app == "customer":
     for f in (p.parent / "src/main").rglob("MainActivity.kt"):
