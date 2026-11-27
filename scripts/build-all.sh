@@ -52,14 +52,20 @@ for app in customer admin support; do
       flutter build apk --release \
         --dart-define=API_BASE_URL="$API" \
         --dart-define=ADMOB_BANNER_ID="$ADMOB_BANNER_ID" \
+        --dart-define=ADMOB_NATIVE_ID="$ADMOB_NATIVE_ID" \
         --dart-define=ADMOB_INTERSTITIAL_ID="$ADMOB_INTERSTITIAL_ID" \
         --dart-define=ADMOB_REWARDED_ID="$ADMOB_REWARDED_ID" \
+        --dart-define=ADMOB_APP_OPEN_ID="$ADMOB_APP_OPEN_ID" \
+        --dart-define=ADMOB_REWARDED_INTERSTITIAL_ID="$ADMOB_REWARDED_INTERSTITIAL_ID" \
         --obfuscate --split-debug-info="$DIST/symbols-$app"
       flutter build appbundle --release \
         --dart-define=API_BASE_URL="$API" \
         --dart-define=ADMOB_BANNER_ID="$ADMOB_BANNER_ID" \
+        --dart-define=ADMOB_NATIVE_ID="$ADMOB_NATIVE_ID" \
         --dart-define=ADMOB_INTERSTITIAL_ID="$ADMOB_INTERSTITIAL_ID" \
         --dart-define=ADMOB_REWARDED_ID="$ADMOB_REWARDED_ID" \
+        --dart-define=ADMOB_APP_OPEN_ID="$ADMOB_APP_OPEN_ID" \
+        --dart-define=ADMOB_REWARDED_INTERSTITIAL_ID="$ADMOB_REWARDED_INTERSTITIAL_ID" \
         --obfuscate --split-debug-info="$DIST/symbols-$app"
     else
       flutter build apk --release --dart-define=API_BASE_URL="$API" --obfuscate --split-debug-info="$DIST/symbols-$app"
