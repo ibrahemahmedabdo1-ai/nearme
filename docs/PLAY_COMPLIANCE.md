@@ -1,4 +1,4 @@
-# Google Play compliance checklist (verified against Google's pages on 2026-11-22; re-check before submitting)
+# Google Play compliance checklist (reviewed against Google's current pages on 2026-11-27; re-check before submitting)
 Sources: support.google.com/googleplay/android-developer/answer/11926878 (target API), /answer/17190352 & /answer/16549787 (Child Safety Standards, social & dating), /answer/9876937 (UGC), /answer/16926792 (policy update: age-gating for dating).
 
 Technical
@@ -20,3 +20,21 @@ Policies
 Testing
 - [ ] Internal testing track → closed testing (new personal developer accounts must meet Play's testing requirements) → production.
 Disclaimer: approval is decided by Google; this list reduces risk, it does not guarantee approval.
+
+
+## Additional launch checks confirmed during the 2026-11-27 audit
+
+- [x] Customer signup requires a birthdate and server-side age calculation rejects users under 18.
+- [ ] Play Console age-restricted content/functionality controls must be configured to block minors for the dating/matchmaking core functionality. The in-app birthdate gate does not replace this Console requirement.
+- [x] UMP consent update is requested at Customer app startup; ad requests fail closed when consent cannot be resolved; a privacy-options entry point is shown when UMP reports it is required.
+- [x] Customer registration links to the Terms, Privacy Policy, and Community Guidelines routes.
+- [x] Android bootstrap now injects the AdMob application ID through a Gradle manifest placeholder; production build guard rejects test IDs and placeholder values.
+- [ ] The Privacy Policy, Terms, and Child Safety pages still contain Owner/legal-review placeholders. Replace them with the operator's verified legal name, monitored privacy/child-safety contacts, accurate provider/retention disclosures, and legally reviewed final text before release.
+- [ ] The child-safety contact must be monitored daily and the escalation/reporting process must be staffed and tested. Do not publish the template as a completed safety program.
+- [ ] Verify UMP messages and privacy options in AdMob Privacy & messaging for applicable regions (including EEA/UK/Switzerland), using test devices and the real production AdMob app ID.
+- [ ] The mobile GitHub workflow currently creates DEBUG APKs only. The signed-release workflow remains disabled until the Owner configures signing secrets; use `scripts/build-all.sh` only after the production IDs and upload keystores are configured.
+
+Official references:
+- Age-restricted functionality: https://support.google.com/googleplay/android-developer/answer/16302250
+- UMP Flutter setup: https://developers.google.com/admob/flutter/privacy
+- AdMob invalid traffic: https://support.google.com/admob/answer/3342054
