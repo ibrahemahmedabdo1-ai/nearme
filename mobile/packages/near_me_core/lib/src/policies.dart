@@ -4,7 +4,7 @@ const kDefaultRadiusKm = 25;
 
 /// Screens where ads must never appear (mirrors backend/src/domain/policy.ts).
 const kAdForbiddenScreens = {
-  'chat_thread', 'report_flow', 'block_flow', 'safety_center', 'verification',
+  'chat_thread', 'chat_list', 'report_flow', 'block_flow', 'safety_center', 'verification',
   'appeal', 'appeals', 'account_deletion', 'login', 'registration', 'auth',
   'onboarding', 'onboarding_age_gate', 'support', 'support_chat', 'support_ticket',
   'ticket', 'ticket_detail', 'child_safety', 'moderation',
