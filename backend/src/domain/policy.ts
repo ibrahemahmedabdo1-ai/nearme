@@ -7,7 +7,12 @@ export function ageFromBirthdate(birth: Date, now = new Date()): number {
 export const isAdult = (birth: Date, now = new Date()) => ageFromBirthdate(birth, now) >= 18;
 
 export type AdSlot = { screen: string; format: "banner" | "native" | "interstitial" | "app_open" | "rewarded" };
-const FORBIDDEN_SCREENS = new Set(["chat_thread","report_flow","block_flow","safety_center","verification","appeal","account_deletion","login","pin_lock","onboarding_age_gate"]);
+const FORBIDDEN_SCREENS = new Set([
+  "chat_thread", "report_flow", "block_flow", "safety_center", "verification",
+  "appeal", "appeals", "account_deletion", "login", "registration", "auth",
+  "onboarding", "onboarding_age_gate", "support", "support_chat", "support_ticket",
+  "ticket", "ticket_detail", "child_safety", "moderation",
+]);
 /** Ads never appear in conversations or safety workflows; rewarded ads are always optional. */
 export function adAllowed(slot: AdSlot, ctx: { lastInterstitialMs: number | null; now?: number; minGapSec: number; isTransition: boolean }): boolean {
   if (FORBIDDEN_SCREENS.has(slot.screen)) return false;
