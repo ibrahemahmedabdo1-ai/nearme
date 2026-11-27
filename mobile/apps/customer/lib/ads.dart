@@ -144,8 +144,7 @@ class AdService extends ChangeNotifier {
           var earned = false;
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdImpression: (_) => recordImpression('rewarded_cosmetic'),
-            onAdImpression: (_) => recordImpression('tab_transition'),
-      onAdDismissedFullScreenContent: (a) {
+            onAdDismissedFullScreenContent: (a) {
               a.dispose();
               _rewardedInFlight = false;
               if (!done.isCompleted) done.complete(earned);
@@ -187,6 +186,7 @@ class AdService extends ChangeNotifier {
     _lastInterstitial = DateTime.now();
     _eligibleTransitionsSinceInterstitial = 0;
     ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdImpression: (_) => recordImpression('tab_transition'),
       onAdDismissedFullScreenContent: (a) {
         a.dispose();
         _preload();
