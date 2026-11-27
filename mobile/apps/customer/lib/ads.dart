@@ -38,9 +38,6 @@ class AdService extends ChangeNotifier {
       await MobileAds.instance.updateRequestConfiguration(
         RequestConfiguration(maxAdContentRating: MaxAdContentRating.pg),
       );
-      await MobileAds.instance.updateRequestConfiguration(
-        RequestConfiguration(maxAdContentRating: MaxAdContentRating.pg),
-      );
       await MobileAds.instance.initialize();
       _ready = true;
       _initialized = true;
@@ -99,6 +96,9 @@ class AdService extends ChangeNotifier {
       _loaded?.dispose();
       _loaded = null;
     } else if (!_ready) {
+      await MobileAds.instance.updateRequestConfiguration(
+        RequestConfiguration(maxAdContentRating: MaxAdContentRating.pg),
+      );
       await MobileAds.instance.initialize();
       _ready = true;
       _initialized = true;
