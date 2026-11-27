@@ -19,6 +19,7 @@ class _AuthScreenState extends State<AuthScreen> {
   int _minAge = 18, _maxAge = 45;
   List<Map<String, dynamic>> _allInterests = [];
   final Set<String> _selectedInterests = {};
+  final Set<String> _preferredGenders = {};
   String? _error;
 
   static const _errors = {
@@ -78,7 +79,7 @@ class _AuthScreenState extends State<AuthScreen> {
       if (_register) {
         await widget.state.register(
           email: _email.text.trim(), password: _pw.text, name: _name.text.trim(), birth: _birth!, installId: await _installId(),
-          gender: _gender, bio: _bio.text.trim(), interests: _selectedInterests.toList(), minAge: _minAge, maxAge: _maxAge,
+          gender: _gender, bio: _bio.text.trim(), interests: _selectedInterests.toList(), minAge: _minAge, maxAge: _maxAge, preferredGenders: _preferredGenders.toList(),
         );
       } else {
         await widget.state.login(_email.text.trim(), _pw.text, await _installId());
@@ -145,6 +146,13 @@ class _AuthScreenState extends State<AuthScreen> {
               const SizedBox(width: 12),
               Expanded(child: DropdownButtonFormField<int>(value: _maxAge, decoration: const InputDecoration(labelText: 'إلى عمر'), items: [for (int a = 18; a <= 99; a++) DropdownMenuItem(value: a, child: Text('$a سنة'))], onChanged: (v) => setState(() => _maxAge = v ?? _maxAge))),
             ]),
+            const SizedBox(height: 12),
+            const Text('نوع الأشخاص الذين تريد اكتشافهم (يمكن اختيار أكثر من نوع):', style: TextStyle(fontSize: 13)),
+            Wrap(spacing: 8, children: [
+              for (final g in const {'male':'أولاد','female':'بنات','other':'آخر'}.entries)
+                FilterChip(label: Text(g.value), selected: _preferredGenders.contains(g.key), onSelected: (v) => setState(() { if (v) { _preferredGenders.add(g.key); } else { _preferredGenders.remove(g.key); } })),
+            ]),
+            const Text('إذا لم تختر أي نوع، ستظهر لك جميع الأنواع المتاحة.', style: TextStyle(fontSize: 11)),
             const SizedBox(height: 18),
             Row(children: [
               const Expanded(child: Text('3. اهتماماتك', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
