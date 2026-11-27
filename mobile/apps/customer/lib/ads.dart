@@ -174,8 +174,7 @@ class AdService extends ChangeNotifier {
     _appOpenLoading = true;
     AppOpenAd.load(
       adUnitId: _appOpenId,
-      orientation: AppOpenAd.orientationPortrait,
-      adRequest: const AdRequest(),
+      request: const AdRequest(),
       adLoadCallback: AppOpenAdLoadCallback(
         onAdLoaded: (ad) { _appOpen = ad; _appOpenLoadedAt = DateTime.now(); _appOpenLoading = false; },
         onAdFailedToLoad: (_) { _appOpen = null; _appOpenLoading = false; },
