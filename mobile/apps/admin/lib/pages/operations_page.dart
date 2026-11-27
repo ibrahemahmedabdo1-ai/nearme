@@ -74,7 +74,7 @@ class _AdsPageState extends State<AdsPage> {
                 SwitchListTile(contentPadding: EdgeInsets.zero, title: Text('${p['placement']} · ${p['format']}'), subtitle: Text(p['enabled'] == true ? 'مفعّل' : 'متوقف'), value: p['enabled'] == true, onChanged: _saving ? null : (v) => setState(() => p['enabled'] = v)),
                 Text('الفاصل الأدنى: ${p['min_gap_sec']} ثانية (حد أمان إلزامي: ${p['safety_min_gap_sec']} ثانية)'),
                 Slider(
-                  value: ((p['min_gap_sec'] as num?)?.toDouble() ?? 120).clamp((p['safety_min_gap_sec'] as num?)?.toDouble() ?? 0, 3600).toDouble(),
+                  value: ((p['min_gap_sec'] as num?)?.toDouble() ?? 120).clamp((p['safety_min_gap_sec'] as num?)?.toDouble() ?? 0, ((p['safety_min_gap_sec'] as num?)?.toDouble() ?? 0) + 3600).toDouble(),
                   min: (p['safety_min_gap_sec'] as num?)?.toDouble() ?? 0,
                   max: ((p['safety_min_gap_sec'] as num?)?.toDouble() ?? 0) + 3600,
                   divisions: 120,
