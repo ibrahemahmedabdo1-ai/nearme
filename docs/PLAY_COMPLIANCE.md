@@ -42,3 +42,5 @@ Official references:
 - [x] Ad impression caps now increment on actual AdMob impression callbacks for Banner, Interstitial, and Rewarded formats (not merely when an ad loads).
 - [x] Ad display policy now blocks authentication, registration, onboarding, support, ticketing, moderation, child-safety, appeals, and all previously excluded safety flows in both backend and Flutter policy mirrors.
 - [x] Release build script validates that each of the three apps has its own upload keystore and key.properties file before starting; temporary staged properties are removed on exit.
+
+- [x] Customer ad requests set AdMob's global maximum ad content rating to `PG` before SDK initialization; Owner must still review AdMob's sensitive-category and advertiser controls in the publisher account.
