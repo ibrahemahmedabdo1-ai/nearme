@@ -9,7 +9,7 @@ export const GET = handle(async (r: NextRequest) => {
   const rp = p.get("radius");
   const radius = rp === "all" ? null : rp ? Number(rp) : DEFAULT_RADIUS_KM;
   if (radius !== null && !(RADIUS_OPTIONS as readonly number[]).includes(radius)) return json({ error: "invalid_radius" }, 422);
-  const me = (await q<any>("SELECT u.lat_cell,u.lon_cell,pr.min_age,pr.max_age,pr.verified_only,(SELECT coalesce(array_agg(i.slug),'{}') FROM user_interests ui JOIN interests i ON i.id=ui.interest_id WHERE ui.user_id=u.id) AS interests FROM users u JOIN preferences pr ON pr.user_id=u.id WHERE u.id=$1", [c.sub]))[0];
+  const me = (await q<any>("SELECT u.lat_cell,u.lon_cell,pr.min_age,pr.max_age,pr.genders,pr.verified_only,(SELECT coalesce(array_agg(i.slug),'{}') FROM user_interests ui JOIN interests i ON i.id=ui.interest_id WHERE ui.user_id=u.id) AS interests FROM users u JOIN preferences pr ON pr.user_id=u.id WHERE u.id=$1", [c.sub]))[0];
   if (!me) return json({ error: "profile_not_found" }, 404);
   const w = ((await q<{ value: Weights }>("SELECT value FROM app_config WHERE key='matching.weights'"))[0]?.value ?? DEFAULT_WEIGHTS) as Weights;
   const rows = await q<any>(
@@ -23,7 +23,9 @@ export const GET = handle(async (r: NextRequest) => {
      WHERE u.status='active' AND u.id<>$1 AND (u.hidden_until IS NULL OR u.hidden_until<now()) AND u.role='customer'
        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker=$1 AND b.blocked=u.id) OR (b.blocker=u.id AND b.blocked=$1))
        AND date_part('year',age(u.birthdate)) BETWEEN $2 AND $3
-     LIMIT 300`, [c.sub, me.min_age, me.max_age]);
+       AND (cardinality($4::text[])=0 OR u.gender = ANY($4::text[]))
+       AND NOT EXISTS (SELECT 1 FROM swipes s WHERE s.from_user=$1 AND s.to_user=u.id)
+     LIMIT 300`, [c.sub, me.min_age, me.max_age, me.genders ?? []]);
   const out = rows.map((u: any) => {
     const km = me.lat_cell != null && u.lat_cell != null ? haversineKm([me.lat_cell, me.lon_cell], [u.lat_cell, u.lon_cell]) : null;
     return { u, km };
