@@ -39,3 +39,27 @@ The app currently defaults to Google's official test ad unit IDs. Production rel
 ## Important release rule
 
 A successful Debug APK build or CI workflow is not proof of production readiness. Do not merge this branch or publish a release until the relevant CI jobs, live-service checks, and manual device tests pass.
+
+
+## Google Play / AdMob compliance gates (required before release)
+
+These are release requirements, not claims that Google has approved the app:
+
+- The app's core discovery/matching functionality is dating/matchmaking-oriented. Configure the Play Console target-audience and age controls so minors are blocked from the dating/matchmaking experience, and verify the in-app age/eligibility gate cannot be bypassed by editing local state or calling APIs directly. Do not market the app to children.
+- Treat profiles, photos, bios, interests, and messages as user-generated content. Require acceptance of Terms and Community Guidelines before upload/use; provide in-app report and block controls; operate timely moderation and appeal handling; enforce repeat-offender actions; and ensure moderation is available to users, not just as a decorative UI.
+- Ads are part of the app's content. Keep ad content appropriate for the app's declared content rating and exclude ads from all authentication, onboarding, chat, verification, reporting, blocking, appeals, support, account deletion, and safety journeys.
+- Interstitials may only appear at an expected, natural break in app content. Never show on launch, exit, immediately after returning from background, during a form/task, or on every swipe/tap. The client now requires at least two eligible tab-transition opportunities between interstitial displays in addition to the Owner-configured minimum gap and session cap. Keep this safeguard non-removable by remote configuration.
+- Rewarded ads must be explicitly user-initiated, clearly explain the optional non-cash cosmetic reward before showing, and never gate matching, messaging, visibility, account safety, or other essential functionality. Do not reward ad clicks.
+- Keep Google's official test ad unit IDs in development only. Production IDs must be supplied through release build configuration; add a release CI guard that fails if test IDs or placeholders are present in a production artifact.
+- Complete the Play Console Data safety form and in-app privacy policy consistently with actual app behavior and every SDK (including ads, analytics, crash reporting, messaging, storage, and authentication). Request permissions only when needed and after contextual explanation; do not collect background location.
+- Complete the applicable consent flow before requesting ads where required. If consent information is unavailable or the user cannot be served ads, fail closed and do not request ads until eligibility is resolved.
+- Verify app content rating, privacy policy URL, account deletion path, UGC moderation, developer contact details, SDK versions, and all required Play Console declarations before submission.
+
+Official policy references reviewed on 2026-11-27:
+- Google Play Developer Program Policy: https://support.google.com/googleplay/android-developer/answer/18265346
+- Google Play Ads policy: https://support.google.com/googleplay/android-developer/answer/9857753
+- Google Play User Data / Data safety: https://support.google.com/googleplay/android-developer/answer/10144311
+- AdMob disallowed interstitial implementations: https://support.google.com/admob/answer/6201362
+- AdMob invalid traffic: https://support.google.com/admob/answer/3342054
+
+A policy checklist is not a substitute for reviewing the actual app, SDK disclosures, Play Console declarations, and live ad behavior. Google makes the final approval decision.
