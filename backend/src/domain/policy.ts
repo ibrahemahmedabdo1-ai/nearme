@@ -8,7 +8,7 @@ export const isAdult = (birth: Date, now = new Date()) => ageFromBirthdate(birth
 
 export type AdSlot = { screen: string; format: "banner" | "native" | "interstitial" | "app_open" | "rewarded" };
 const FORBIDDEN_SCREENS = new Set([
-  "chat_thread", "report_flow", "block_flow", "safety_center", "verification",
+  "chat_thread", "chat_list", "report_flow", "block_flow", "safety_center", "verification",
   "appeal", "appeals", "account_deletion", "login", "registration", "auth",
   "onboarding", "onboarding_age_gate", "support", "support_chat", "support_ticket",
   "ticket", "ticket_detail", "child_safety", "moderation",
