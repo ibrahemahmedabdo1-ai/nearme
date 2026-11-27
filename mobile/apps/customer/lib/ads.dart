@@ -15,6 +15,7 @@ class AdService {
   bool _ready = false;
   DateTime? _lastInterstitial;
   InterstitialAd? _loaded;
+  final Map<String, int> _sessionImpressions = {};
   List<dynamic> placements = const []; // from /api/config -> ads (Owner-controlled)
 
   /// Call after the UMP consent flow. Ads are never requested before consent info is resolved.
@@ -39,17 +40,21 @@ class AdService {
 
   Map<String, dynamic>? _p(String placement) { for (final p in placements) { if ((p as Map<String, dynamic>)['placement'] == placement) { return p; } } return null; }
   bool enabled(String placement) => _ready && (_p(placement)?['enabled'] == true);
+  int _max(String placement) => (_p(placement)?['max_per_session'] as int?) ?? 0;
+  bool canShow(String placement) => enabled(placement) && _max(placement) > 0 && (_sessionImpressions[placement] ?? 0) < _max(placement);
+  void recordImpression(String placement) { _sessionImpressions[placement] = (_sessionImpressions[placement] ?? 0) + 1; }
 
-  void _preload() { if (!enabled('tab_transition')) return; InterstitialAd.load(adUnitId: _interstitialId, request: const AdRequest(), adLoadCallback: InterstitialAdLoadCallback(onAdLoaded: (a) => _loaded = a, onAdFailedToLoad: (_) => _loaded = null)); }
+  void _preload() { if (!canShow('tab_transition')) return; InterstitialAd.load(adUnitId: _interstitialId, request: const AdRequest(), adLoadCallback: InterstitialAdLoadCallback(onAdLoaded: (a) => _loaded = a, onAdFailedToLoad: (_) => _loaded = null)); }
 
   /// OPTIONAL rewarded ad (user-initiated only, never required for any essential feature). Resolves true if the reward was earned.
   Future<bool> showRewarded() async {
-    if (!enabled('rewarded_cosmetic')) return false;
+    if (!canShow('rewarded_cosmetic')) return false;
     final done = Completer<bool>();
     RewardedAd.load(adUnitId: _rewardedId, request: const AdRequest(), rewardedAdLoadCallback: RewardedAdLoadCallback(
       onAdLoaded: (ad) {
         var earned = false;
         ad.fullScreenContentCallback = FullScreenContentCallback(onAdDismissedFullScreenContent: (a) { a.dispose(); if (!done.isCompleted) done.complete(earned); }, onAdFailedToShowFullScreenContent: (a, _) { a.dispose(); if (!done.isCompleted) done.complete(false); });
+        recordImpression('rewarded_cosmetic');
         ad.show(onUserEarnedReward: (_, __) => earned = true);
       },
       onAdFailedToLoad: (_) { if (!done.isCompleted) done.complete(false); },
@@ -60,9 +65,9 @@ class AdService {
   /// Shows an interstitial only at a natural tab transition, respecting the Owner's gap and the forbidden-screen policy.
   void maybeShowInterstitial({required String fromScreen}) {
     final p = _p('tab_transition');
-    if (!enabled('tab_transition') || _loaded == null) return;
+    if (!canShow('tab_transition') || _loaded == null) return;
     if (!adAllowed(screen: fromScreen, format: 'interstitial', isTransition: true, lastInterstitial: _lastInterstitial, minGapSec: (p?['min_gap_sec'] as int?) ?? 120)) return;
-    final ad = _loaded!; _loaded = null; _lastInterstitial = DateTime.now();
+    final ad = _loaded!; _loaded = null; _lastInterstitial = DateTime.now(); recordImpression('tab_transition');
     ad.fullScreenContentCallback = FullScreenContentCallback(onAdDismissedFullScreenContent: (a) { a.dispose(); _preload(); });
     ad.show();
   }
@@ -82,8 +87,8 @@ class _NmBannerState extends State<NmBanner> {
   @override
   void initState() {
     super.initState();
-    if (adAllowed(screen: widget.screen, format: 'banner', isTransition: false) && AdService.instance.enabled(widget.placement)) {
-      _ad = BannerAd(adUnitId: _bannerId, size: AdSize.banner, request: const AdRequest(), listener: BannerAdListener(onAdLoaded: (_) { if (mounted) setState(() => _loaded = true); }, onAdFailedToLoad: (ad, _) => ad.dispose()))..load();
+    if (adAllowed(screen: widget.screen, format: 'banner', isTransition: false) && AdService.instance.canShow(widget.placement)) {
+      _ad = BannerAd(adUnitId: _bannerId, size: AdSize.banner, request: const AdRequest(), listener: BannerAdListener(onAdLoaded: (_) { if (mounted) { AdService.instance.recordImpression(widget.placement); setState(() => _loaded = true); } }, onAdFailedToLoad: (ad, _) => ad.dispose()))..load();
     }
   }
   @override
