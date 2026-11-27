@@ -16,6 +16,7 @@ class AdService {
   DateTime? _lastInterstitial;
   InterstitialAd? _loaded;
   final Map<String, int> _sessionImpressions = {};
+  int _eligibleTransitionsSinceInterstitial = 2;
   List<dynamic> placements = const []; // from /api/config -> ads (Owner-controlled)
 
   /// Call after the UMP consent flow. Ads are never requested before consent info is resolved.
@@ -53,8 +54,11 @@ class AdService {
     RewardedAd.load(adUnitId: _rewardedId, request: const AdRequest(), rewardedAdLoadCallback: RewardedAdLoadCallback(
       onAdLoaded: (ad) {
         var earned = false;
-        ad.fullScreenContentCallback = FullScreenContentCallback(onAdDismissedFullScreenContent: (a) { a.dispose(); if (!done.isCompleted) done.complete(earned); }, onAdFailedToShowFullScreenContent: (a, _) { a.dispose(); if (!done.isCompleted) done.complete(false); });
-        recordImpression('rewarded_cosmetic');
+        ad.fullScreenContentCallback = FullScreenContentCallback(
+          onAdShowedFullScreenContent: (_) => recordImpression('rewarded_cosmetic'),
+          onAdDismissedFullScreenContent: (a) { a.dispose(); if (!done.isCompleted) done.complete(earned); },
+          onAdFailedToShowFullScreenContent: (a, _) { a.dispose(); if (!done.isCompleted) done.complete(false); },
+        );
         ad.show(onUserEarnedReward: (_, __) => earned = true);
       },
       onAdFailedToLoad: (_) { if (!done.isCompleted) done.complete(false); },
@@ -62,13 +66,23 @@ class AdService {
     return done.future;
   }
 
-  /// Shows an interstitial only at a natural tab transition, respecting the Owner's gap and the forbidden-screen policy.
+  /// Shows an interstitial only at a natural tab transition, after at least two transition
+  /// opportunities since the previous interstitial, and subject to the Owner's minimum gap.
+  /// This is intentionally more conservative than showing an ad after every navigation action.
   void maybeShowInterstitial({required String fromScreen}) {
     final p = _p('tab_transition');
-    if (!canShow('tab_transition') || _loaded == null) return;
+    if (!canShow('tab_transition')) return;
+    _eligibleTransitionsSinceInterstitial++;
+    if (_eligibleTransitionsSinceInterstitial < 2 || _loaded == null) return;
     if (!adAllowed(screen: fromScreen, format: 'interstitial', isTransition: true, lastInterstitial: _lastInterstitial, minGapSec: (p?['min_gap_sec'] as int?) ?? 120)) return;
-    final ad = _loaded!; _loaded = null; _lastInterstitial = DateTime.now(); recordImpression('tab_transition');
-    ad.fullScreenContentCallback = FullScreenContentCallback(onAdDismissedFullScreenContent: (a) { a.dispose(); _preload(); });
+    final ad = _loaded!;
+    _loaded = null;
+    _lastInterstitial = DateTime.now();
+    _eligibleTransitionsSinceInterstitial = 0;
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (a) { a.dispose(); _preload(); },
+      onAdFailedToShowFullScreenContent: (a, _) { a.dispose(); _preload(); },
+    );
     ad.show();
   }
 }
