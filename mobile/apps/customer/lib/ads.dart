@@ -32,6 +32,7 @@ class AdService extends ChangeNotifier {
     _initializing = true;
     try {
       final canRequest = await _resolveConsent();
+      notifyListeners();
       if (!canRequest) return;
       await MobileAds.instance.initialize();
       _ready = true;
@@ -91,6 +92,7 @@ class AdService extends ChangeNotifier {
     } else if (!_ready) {
       await MobileAds.instance.initialize();
       _ready = true;
+      _initialized = true;
       _preload();
     }
     notifyListeners();
@@ -211,7 +213,15 @@ class _NmBannerState extends State<NmBanner> {
     _tryLoad();
   }
 
-  void _onAdServiceChanged() => _tryLoad();
+  void _onAdServiceChanged() {
+    if (!AdService.instance.ready && _ad != null) {
+      _ad!.dispose();
+      _ad = null;
+      if (mounted) setState(() => _loaded = false);
+      return;
+    }
+    _tryLoad();
+  }
 
   void _tryLoad() {
     if (!mounted || _attempted || !AdService.instance.ready) return;
