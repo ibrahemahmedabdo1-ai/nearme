@@ -146,7 +146,7 @@ class AdService extends ChangeNotifier {
       adUnitId: _rewardedId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
+        onAdLoaded: (ad) async {
           var earned = false;
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdImpression: (_) => recordImpression('rewarded_cosmetic'),
@@ -161,7 +161,13 @@ class AdService extends ChangeNotifier {
               if (!done.isCompleted) done.complete(false);
             },
           );
-          ad.show(onUserEarnedReward: (_, __) => earned = true);
+          try {
+            await ad.show(onUserEarnedReward: (_, __) => earned = true);
+          } catch (_) {
+            ad.dispose();
+            _rewardedInFlight = false;
+            if (!done.isCompleted) done.complete(false);
+          }
         },
         onAdFailedToLoad: (_) {
           _rewardedInFlight = false;
