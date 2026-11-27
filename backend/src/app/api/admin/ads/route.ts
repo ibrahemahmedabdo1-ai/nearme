@@ -9,6 +9,9 @@ const SAFETY_LIMITS: Record<string, { maxPerSession: number; minGapSec: number }
   home_feed: { maxPerSession: 4, minGapSec: 120 },
   tab_transition: { maxPerSession: 3, minGapSec: 180 },
   rewarded_cosmetic: { maxPerSession: 5, minGapSec: 0 },
+  discovery_native: { maxPerSession: 3, minGapSec: 90 },
+  app_open: { maxPerSession: 1, minGapSec: 14400 },
+  rewarded_interstitial_cosmetic: { maxPerSession: 2, minGapSec: 300 },
 };
 
 /** Owner-controlled AdMob placements. No chat/auth/safety placement is permitted. */
