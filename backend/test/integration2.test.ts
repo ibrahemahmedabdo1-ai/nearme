@@ -158,7 +158,9 @@ test("ad placements: fixed set, disabled by default, Owner-configurable, validat
   assert.deepEqual(list.map((p: any) => p.placement).sort(), ["app_open", "discovery_native", "home_feed", "rewarded_cosmetic", "rewarded_interstitial_cosmetic", "tab_transition"]); assert.ok(list.every((p: any) => p.enabled === false));
   assert.equal((await call("admin/ads", "GET", { token: adm.token })).status, 403);   // not granted by default
   assert.equal((await call("admin/ads", "PUT", { token: owner.token, body: { placement: "chat_thread", enabled: true } })).status, 403);   // no ads in chat, ever
-  const lowerGap = await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", min_gap_sec: 5 } });\n  assert.equal(lowerGap.status, 200); assert.equal(lowerGap.body.min_gap_sec, 120); // hard safety floor cannot be lowered
-  const enabled = await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", enabled: true, min_gap_sec: 90 } });\n  assert.equal(enabled.status, 200); assert.equal(enabled.body.min_gap_sec, 120);
+  const lowerGap = await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", min_gap_sec: 5 } });
+  assert.equal(lowerGap.status, 200); assert.equal(lowerGap.body.min_gap_sec, 120); // hard safety floor cannot be lowered
+  const enabled = await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", enabled: true, min_gap_sec: 90 } });
+  assert.equal(enabled.status, 200); assert.equal(enabled.body.min_gap_sec, 120);
   assert.equal((await call("config", "GET")).body.ads.find((p: any) => p.placement === "home_feed").enabled, true);
 });
