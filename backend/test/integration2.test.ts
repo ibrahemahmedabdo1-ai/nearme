@@ -13,6 +13,19 @@ test("login is bound to the registered device (one account per device)", async (
   assert.equal(sql(`SELECT count(*) FROM security_events WHERE user_id='${u.id}' AND kind='login_unregistered_device'`), "1");
 });
 
+test("customer login re-checks adult eligibility for legacy pre-existing accounts", async () => {
+  const u = await newUser("ageLogin");
+  // Simulate a legacy row that predates the database age constraint. Restore the schema/data in finally.
+  sql(`ALTER TABLE users ALTER COLUMN birthdate DROP NOT NULL; ALTER TABLE users DROP CONSTRAINT users_birthdate_check; UPDATE users SET birthdate='2012-01-01' WHERE id='${u.id}'`);
+  try {
+    const denied = await call("auth/login", "POST", { body: { email: u.email, password: pw, install_id: u.install } });
+    assert.equal(denied.status, 403);
+    assert.equal(denied.body.error, "age_restricted");
+  } finally {
+    sql(`UPDATE users SET birthdate='1995-01-01' WHERE id='${u.id}'; ALTER TABLE users ADD CONSTRAINT users_birthdate_check CHECK (birthdate <= (CURRENT_DATE - INTERVAL '18 years')); ALTER TABLE users ALTER COLUMN birthdate SET NOT NULL`);
+  }
+});
+
 test("profile edit, interests, hide, no secrets in /me", async () => {
   const u = await newUser("prof");
   assert.equal((await call("me", "PATCH", { token: u.token, body: { display_name: "Nova", bio: "hello world" } })).status, 200);
@@ -54,7 +67,7 @@ test("presence and typing respect privacy and conversation membership", async ()
 });
 
 test("rewind (5 minutes, not after a match) and boost (once per 24h, sorted first)", async () => {
-  const a = await newUser("rwA"), b = await newUser("rwB"), c = await newUser("rwC");
+  const a = await newUser("rwA"), b = await newUser("rwB"), c = await newUser("rwC"), d = await newUser("rwD");
   await call("swipes", "POST", { token: a.token, body: { to_user: b.id, kind: "pass" } });
   assert.equal((await call("swipes/rewind", "POST", { token: a.token })).body.restored_user, b.id);
   assert.equal((await call("swipes/rewind", "POST", { token: a.token })).status, 404);
@@ -63,9 +76,11 @@ test("rewind (5 minutes, not after a match) and boost (once per 24h, sorted firs
   assert.equal((await call("swipes/rewind", "POST", { token: a.token })).status, 409);
   await call("swipes", "POST", { token: b.token, body: { to_user: c.id, kind: "like" } }); await call("swipes", "POST", { token: c.token, body: { to_user: b.id, kind: "like" } });
   assert.equal((await call("swipes/rewind", "POST", { token: b.token })).status, 409);   // matched
-  assert.equal((await call("boost", "POST", { token: c.token })).status, 201);
-  assert.equal((await call("boost", "POST", { token: c.token })).status, 429);
-  const res = (await call("discover", "GET", { token: a.token, query: "?radius=all" })).body.results; assert.equal(res[0].id, c.id);
+  assert.equal((await call("boost", "POST", { token: d.token })).status, 201);
+  assert.equal((await call("boost", "POST", { token: d.token })).status, 429);
+  const res = (await call("discover", "GET", { token: a.token, query: "?radius=all" })).body.results;
+  assert.ok(!res.some((p: any) => p.id === c.id), "a passed profile must not reappear after the rewind window");
+  assert.equal(res[0].id, d.id);
 });
 
 test("owner-controlled matching weights are validated and audited", async () => {
@@ -145,10 +160,12 @@ test("sessions can be listed and revoked; fcm token stored on the device; securi
 test("ad placements: fixed set, disabled by default, Owner-configurable, validated", async () => {
   const owner = await staff("owner", "ownr"); const adm = await staff("admin", "adadm");
   const list = (await call("admin/ads", "GET", { token: owner.token })).body.placements;
-  assert.deepEqual(list.map((p: any) => p.placement).sort(), ["home_feed", "rewarded_cosmetic", "tab_transition"]); assert.ok(list.every((p: any) => p.enabled === false));
+  assert.deepEqual(list.map((p: any) => p.placement).sort(), ["app_open", "discovery_native", "home_feed", "rewarded_cosmetic", "rewarded_interstitial_cosmetic", "tab_transition"]); assert.ok(list.every((p: any) => p.enabled === false));
   assert.equal((await call("admin/ads", "GET", { token: adm.token })).status, 403);   // not granted by default
-  assert.equal((await call("admin/ads", "PUT", { token: owner.token, body: { placement: "chat_thread", enabled: true } })).status, 404);   // no ads in chat, ever
-  assert.equal((await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", min_gap_sec: 5 } })).status, 422);
-  assert.equal((await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", enabled: true, min_gap_sec: 90 } })).status, 200);
+  assert.equal((await call("admin/ads", "PUT", { token: owner.token, body: { placement: "chat_thread", enabled: true } })).status, 403);   // no ads in chat, ever
+  const lowerGap = await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", min_gap_sec: 5 } });
+  assert.equal(lowerGap.status, 200); assert.equal(lowerGap.body.min_gap_sec, 120); // hard safety floor cannot be lowered
+  const enabled = await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", enabled: true, min_gap_sec: 90 } });
+  assert.equal(enabled.status, 200); assert.equal(enabled.body.min_gap_sec, 120);
   assert.equal((await call("config", "GET")).body.ads.find((p: any) => p.placement === "home_feed").enabled, true);
 });

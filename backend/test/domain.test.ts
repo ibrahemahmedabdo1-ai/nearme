@@ -78,7 +78,11 @@ test("age gate 18+", () => { const n = new Date("2026-06-15"); assert.ok(isAdult
 test("ad policy", () => {
   const c = { lastInterstitialMs: null, minGapSec: 120, isTransition: true, now: 1e6 };
   assert.ok(!adAllowed({ screen: "chat_thread", format: "banner" }, c));
+  assert.ok(!adAllowed({ screen: "chat_list", format: "banner" }, c));
   assert.ok(!adAllowed({ screen: "report_flow", format: "native" }, c));
+  for (const screen of ["login", "registration", "onboarding", "support", "support_chat", "support_ticket", "appeals", "child_safety", "moderation"]) {
+    assert.ok(!adAllowed({ screen, format: "banner" }, c), `ads must be blocked in ${screen}`);
+  }
   assert.ok(adAllowed({ screen: "home", format: "native" }, c));
   assert.ok(!adAllowed({ screen: "home", format: "interstitial" }, { ...c, isTransition: false }));
   assert.ok(!adAllowed({ screen: "home", format: "interstitial" }, { ...c, lastInterstitialMs: 1e6 - 5000 }));

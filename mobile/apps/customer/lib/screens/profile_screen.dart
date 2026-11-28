@@ -20,7 +20,7 @@ class ProfileScreen extends StatelessWidget {
         ListTile(leading: const Icon(Icons.edit_outlined), title: const Text('تعديل الملف والاهتمامات'), onTap: () => _go(context, ProfileEditScreen(api: state.api))),
         ListTile(leading: const Icon(Icons.favorite_border), title: const Text('أعجبوا بك'), onTap: () => _go(context, IncomingLikesScreen(api: state.api))),
         ListTile(leading: const Icon(Icons.notifications_none), title: const Text('الإشعارات'), onTap: () => _go(context, NotificationsScreen(api: state.api))),
-        ListTile(leading: const Icon(Icons.emoji_events_outlined), title: const Text('الإنجازات والمخزون'), onTap: () => _go(context, RewardsScreen(api: state.api, builder: state.builder, onWatchRewardedAd: AdService.instance.showRewarded))),
+        ListTile(leading: const Icon(Icons.emoji_events_outlined), title: const Text('الإنجازات والمخزون'), onTap: () => _go(context, RewardsScreen(api: state.api, builder: state.builder, onWatchRewardedAd: AdService.instance.showRewarded, onWatchRewardedInterstitialAd: AdService.instance.showRewardedInterstitial))),
         ListTile(leading: const Icon(Icons.verified_outlined), title: const Text('توثيق الحساب'), onTap: () => _go(context, VerificationScreen(api: state.api))),
         ListTile(leading: const Icon(Icons.support_agent), title: const Text('الدعم والملاحظات'), onTap: () => _go(context, SupportTicketScreen(api: state.api))),
         ListTile(leading: const Icon(Icons.gavel_outlined), title: const Text('اعتراض على عقوبة'), onTap: () => _go(context, AppealScreen(api: state.api))),
@@ -29,6 +29,30 @@ class ProfileScreen extends StatelessWidget {
         ListTile(leading: const Icon(Icons.dark_mode_outlined), title: const Text('الوضع'), subtitle: Text(state.themeMode.name), onTap: () => state.setThemeMode(ThemeMode.values[(state.themeMode.index + 1) % 3])),
         ListTile(leading: const Icon(Icons.lock_outline), title: const Text('قفل PIN ورمز الخداع'), onTap: () => _pinSettings(context)),
         ListTile(leading: const Icon(Icons.shield_outlined), title: const Text('مركز الأمان'), onTap: () => _go(context, SecurityCenterScreen(api: state.api))),
+        ListenableBuilder(
+          listenable: AdService.instance,
+          builder: (context, _) => FutureBuilder<bool>(
+            future: AdService.instance.privacyOptionsRequired,
+            builder: (context, snapshot) {
+              if (snapshot.data != true) return const SizedBox.shrink();
+              return ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined),
+                title: const Text('خيارات الخصوصية والإعلانات'),
+                onTap: () async {
+                  try {
+                    await AdService.instance.showPrivacyOptions();
+                  } catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('تعذر فتح خيارات الخصوصية. حاول مرة أخرى.')),
+                      );
+                    }
+                  }
+                },
+              );
+            },
+          ),
+        ),
         ListTile(leading: const Icon(Icons.logout), title: const Text('تسجيل الخروج'), onTap: state.signOut),
         ListTile(leading: Icon(Icons.delete_forever_outlined, color: Theme.of(context).colorScheme.error), title: const Text('حذف الحساب'), onTap: () => _confirmDelete(context)),
       ])),

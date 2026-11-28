@@ -1,4 +1,4 @@
-# Google Play compliance checklist (verified against Google's pages on 2026-11-22; re-check before submitting)
+# Google Play compliance checklist (reviewed against Google's current pages on 2026-11-27; re-check before submitting)
 Sources: support.google.com/googleplay/android-developer/answer/11926878 (target API), /answer/17190352 & /answer/16549787 (Child Safety Standards, social & dating), /answer/9876937 (UGC), /answer/16926792 (policy update: age-gating for dating).
 
 Technical
@@ -10,8 +10,8 @@ Technical
 Policies
 - [ ] Privacy Policy URL (`/privacy`) filled with legal name/contact. [ ] Terms (`/terms`). [ ] Community Guidelines page (add from legal/COMMUNITY_GUIDELINES.md).
 - [ ] Account deletion: in-app (Profile → Delete account) **and** web URL `/delete-account` entered in Data safety.
-- [ ] Child Safety Standards: published CSAE prohibition (`/child-safety`), in-app reporting (done), designated contact, self-certify in Play Console for Social/Dating.
-- [ ] UGC: terms acceptance at signup (done), report + block (done), moderation by humans (Admin/Support), objectionable content defined in Community Guidelines.
+- [ ] Child Safety Standards page (`/child-safety`) exists as a template; CSAE reporting categories are implemented, but the designated monitored contact, staffed escalation process, and Play Console self-certification remain outstanding.
+- [ ] UGC: signup terms acceptance, report + block, and Community Guidelines are implemented in code; verify end-to-end human moderation coverage, response times, content removal, and appeals before launch.
 - [ ] Dating: use Play Console "Restrict minor access" / age-based blocking since dating is the primary function; keep in-app 18+ gate (done). No sugar-dating/compensated arrangements — enforce in rules.
 - [ ] Ads: declare "contains ads"; AdMob app IDs; UMP consent flow for EEA/UK; no ads in chat/safety (enforced in policy code); no accidental-click design.
 - [ ] Data safety form: location (approx), personal info, photos, messages, device IDs (install id hash, AD_ID), security events. Must match actual behavior.
@@ -20,3 +20,27 @@ Policies
 Testing
 - [ ] Internal testing track → closed testing (new personal developer accounts must meet Play's testing requirements) → production.
 Disclaimer: approval is decided by Google; this list reduces risk, it does not guarantee approval.
+
+
+## Additional launch checks confirmed during the 2026-11-27 audit
+
+- [x] Customer signup requires a birthdate and server-side age calculation rejects users under 18.
+- [ ] Play Console age-restricted content/functionality controls must be configured to block minors for the dating/matchmaking core functionality. The in-app birthdate gate does not replace this Console requirement.
+- [x] UMP consent update is requested at Customer app startup; ad requests fail closed when consent cannot be resolved; a privacy-options entry point is shown when UMP reports it is required.
+- [x] Customer registration links to the Terms, Privacy Policy, and Community Guidelines routes.
+- [x] Android bootstrap now injects the AdMob application ID through a Gradle manifest placeholder; production build guard rejects test IDs and placeholder values.
+- [ ] The Privacy Policy, Terms, and Child Safety pages still contain Owner/legal-review placeholders. Replace them with the operator's verified legal name, monitored privacy/child-safety contacts, accurate provider/retention disclosures, and legally reviewed final text before release.
+- [ ] The child-safety contact must be monitored daily and the escalation/reporting process must be staffed and tested. Do not publish the template as a completed safety program.
+- [ ] Verify UMP messages and privacy options in AdMob Privacy & messaging for applicable regions (including EEA/UK/Switzerland), using test devices and the real production AdMob app ID.
+- [ ] The mobile GitHub workflow currently creates DEBUG APKs only. The signed-release workflow remains disabled until the Owner configures signing secrets; use `scripts/build-all.sh` only after the production IDs and upload keystores are configured.
+
+Official references:
+- Age-restricted functionality: https://support.google.com/googleplay/android-developer/answer/16302250
+- UMP Flutter setup: https://developers.google.com/admob/flutter/privacy
+- AdMob invalid traffic: https://support.google.com/admob/answer/3342054
+
+- [x] Ad impression caps now increment on actual AdMob impression callbacks for Banner, Interstitial, and Rewarded formats (not merely when an ad loads).
+- [x] Ad display policy now blocks authentication, registration, onboarding, support, ticketing, moderation, child-safety, appeals, and all previously excluded safety flows in both backend and Flutter policy mirrors.
+- [x] Release build script validates that each of the three apps has its own upload keystore and key.properties file before starting; temporary staged properties are removed on exit.
+
+- [x] Customer ad requests set AdMob's global maximum ad content rating to `PG` before SDK initialization; Owner must still review AdMob's sensitive-category and advertiser controls in the publisher account.

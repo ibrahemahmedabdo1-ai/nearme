@@ -2,7 +2,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:near_me_core/near_me_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../app_state.dart';
+
+const _legalBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:3000');
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key, required this.state});
@@ -19,6 +22,7 @@ class _AuthScreenState extends State<AuthScreen> {
   int _minAge = 18, _maxAge = 45;
   List<Map<String, dynamic>> _allInterests = [];
   final Set<String> _selectedInterests = {};
+  final Set<String> _preferredGenders = {};
   String? _error;
 
   static const _errors = {
@@ -66,6 +70,14 @@ class _AuthScreenState extends State<AuthScreen> {
     return now.year - _birth!.year - ((now.month < _birth!.month || (now.month == _birth!.month && now.day < _birth!.day)) ? 1 : 0);
   }
 
+  Future<void> _openLegal(String page) async {
+    final base = _legalBaseUrl.replaceFirst(RegExp(r'/+$'), '');
+    final uri = Uri.parse('$base/$page');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر فتح صفحة السياسات. تحقق من اتصال الإنترنت.')));
+    }
+  }
+
   Future<void> _submit() async {
     if (_register) {
       if (_birth == null || !isAdult(_birth!)) { setState(() => _error = 'اختر تاريخ ميلاد صحيحًا. التسجيل متاح لمن هم 18 عامًا فأكثر.'); return; }
@@ -78,7 +90,7 @@ class _AuthScreenState extends State<AuthScreen> {
       if (_register) {
         await widget.state.register(
           email: _email.text.trim(), password: _pw.text, name: _name.text.trim(), birth: _birth!, installId: await _installId(),
-          gender: _gender, bio: _bio.text.trim(), interests: _selectedInterests.toList(), minAge: _minAge, maxAge: _maxAge,
+          gender: _gender, bio: _bio.text.trim(), interests: _selectedInterests.toList(), minAge: _minAge, maxAge: _maxAge, preferredGenders: _preferredGenders.toList(),
         );
       } else {
         await widget.state.login(_email.text.trim(), _pw.text, await _installId());
@@ -145,6 +157,13 @@ class _AuthScreenState extends State<AuthScreen> {
               const SizedBox(width: 12),
               Expanded(child: DropdownButtonFormField<int>(value: _maxAge, decoration: const InputDecoration(labelText: 'إلى عمر'), items: [for (int a = 18; a <= 99; a++) DropdownMenuItem(value: a, child: Text('$a سنة'))], onChanged: (v) => setState(() => _maxAge = v ?? _maxAge))),
             ]),
+            const SizedBox(height: 12),
+            const Text('نوع الأشخاص الذين تريد اكتشافهم (يمكن اختيار أكثر من نوع):', style: TextStyle(fontSize: 13)),
+            Wrap(spacing: 8, children: [
+              for (final g in const {'male':'أولاد','female':'بنات','other':'آخر'}.entries)
+                FilterChip(label: Text(g.value), selected: _preferredGenders.contains(g.key), onSelected: (v) => setState(() { if (v) { _preferredGenders.add(g.key); } else { _preferredGenders.remove(g.key); } })),
+            ]),
+            const Text('إذا لم تختر أي نوع، ستظهر لك جميع الأنواع المتاحة.', style: TextStyle(fontSize: 11)),
             const SizedBox(height: 18),
             Row(children: [
               const Expanded(child: Text('3. اهتماماتك', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
@@ -168,7 +187,12 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
             ]),
             const SizedBox(height: 12),
-            CheckboxListTile(value: _terms, onChanged: (v) => setState(() => _terms = v ?? false), controlAffinity: ListTileControlAffinity.leading, contentPadding: EdgeInsets.zero, title: const Text('أؤكد أن عمري 18 عامًا أو أكثر وأوافق على الشروط وسياسة الخصوصية', style: TextStyle(fontSize: 12))),
+            CheckboxListTile(value: _terms, onChanged: (v) => setState(() => _terms = v ?? false), controlAffinity: ListTileControlAffinity.leading, contentPadding: EdgeInsets.zero, title: const Text('أؤكد أن عمري 18 عامًا أو أكثر وأوافق على الشروط وسياسة الخصوصية وإرشادات المجتمع', style: TextStyle(fontSize: 12))),
+            Wrap(spacing: 4, children: [
+              TextButton(onPressed: () => _openLegal('terms'), child: const Text('الشروط')),
+              TextButton(onPressed: () => _openLegal('privacy'), child: const Text('سياسة الخصوصية')),
+              TextButton(onPressed: () => _openLegal('community-guidelines'), child: const Text('إرشادات المجتمع')),
+            ]),
           ],
           if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_error!, style: TextStyle(color: cs.error))),
           const SizedBox(height: 16),

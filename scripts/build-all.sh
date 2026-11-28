@@ -1,14 +1,95 @@
 #!/usr/bin/env bash
-# Builds APK (local testing) and AAB (Play) + obfuscation symbols + checksums into ./dist. Requires: Flutter, Android SDK, key.properties for release.
+# Builds signed APK + AAB for all three apps. Requires Flutter, Android SDK, API_BASE_URL,
+# configured upload signing keys, and real production AdMob identifiers for Customer.
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"; API="${API_BASE_URL:?set API_BASE_URL=https://your-app.vercel.app}"; DIST="$ROOT/dist"; mkdir -p "$DIST"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+API="${API_BASE_URL:?set API_BASE_URL=https://your-production-backend.example}"
+DIST="$ROOT/dist"
+KEY_DIR="${ANDROID_KEYS_DIR:-$HOME/.nearme-keys}"
+ANDROID_SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+mkdir -p "$DIST"
+STAGE_DIR="$(mktemp -d)"
+cleanup() {
+  for app in customer admin support; do
+    target="$ROOT/mobile/apps/$app/android/key.properties"
+    if [ -f "$STAGE_DIR/$app.key.properties" ]; then
+      cp "$STAGE_DIR/$app.key.properties" "$target"
+    else
+      rm -f "$target"
+    fi
+  done
+  rm -rf "$STAGE_DIR"
+}
+trap cleanup EXIT
+
+case "$API" in
+  https://*) ;;
+  *) echo "::error::API_BASE_URL must use HTTPS for production builds."; exit 1 ;;
+esac
+
+# Resolve apksigner from the Android SDK; it is commonly not on PATH in CI.
+APK_SIGNER="$(command -v apksigner || true)"
+if [ -z "$APK_SIGNER" ] && [ -n "$ANDROID_SDK" ] && [ -d "$ANDROID_SDK/build-tools" ]; then
+  APK_SIGNER="$(find "$ANDROID_SDK/build-tools" -mindepth 2 -maxdepth 2 -type f -name apksigner -print 2>/dev/null | sort -V | tail -n 1)"
+fi
+if [ -z "$APK_SIGNER" ] || [ ! -x "$APK_SIGNER" ]; then
+  echo "::error::Android build-tools apksigner was not found. SDK: ${ANDROID_SDK:-unset}"
+  exit 1
+fi
+echo "Using APK signature verifier: $APK_SIGNER"
+
+# Do not allow Google's test app/ad unit IDs into a production artifact.
+bash "$ROOT/scripts/verify-release-admob.sh"
+
 for app in customer admin support; do
-  d="$ROOT/mobile/apps/$app"; [ -d "$d/android" ] || { echo "run scripts/bootstrap-flutter.sh first"; exit 1; }
-  (cd "$d" && flutter test && flutter build apk --release --dart-define=API_BASE_URL="$API" --obfuscate --split-debug-info="$DIST/symbols-$app" \
-     && flutter build appbundle --release --dart-define=API_BASE_URL="$API" --obfuscate --split-debug-info="$DIST/symbols-$app")
+  d="$ROOT/mobile/apps/$app"
+  [ -d "$d/android" ] || { echo "run scripts/bootstrap-flutter.sh first"; exit 1; }
+  KEY_PROPS="$KEY_DIR/$app.key.properties"
+  [ -f "$KEY_PROPS" ] || { echo "::error::Missing $KEY_PROPS. Run scripts/generate-upload-keystore.sh after bootstrap."; exit 1; }
+  STORE_FILE="$(sed -n 's/^storeFile=//p' "$KEY_PROPS" | head -n 1)"
+  [ -n "$STORE_FILE" ] && [ -f "$STORE_FILE" ] || { echo "::error::Upload keystore missing for $app."; exit 1; }
+  if [ -f "$d/android/key.properties" ]; then cp "$d/android/key.properties" "$STAGE_DIR/$app.key.properties"; fi
+  cp "$KEY_PROPS" "$d/android/key.properties"
+  GRADLE_FILE="$d/android/app/build.gradle.kts"
+  [ -f "$GRADLE_FILE" ] || GRADLE_FILE="$d/android/app/build.gradle"
+  grep -Eq 'signingConfig.*release|signingConfig = signingConfigs.getByName\("release"\)' "$GRADLE_FILE" || {
+    echo "::error::Release signing is not configured in $GRADLE_FILE. Re-run bootstrap or follow docs/ANDROID_SIGNING.md."
+    exit 1
+  }
+  (
+    cd "$d"
+    flutter analyze --no-fatal-infos --no-fatal-warnings
+    if [ -d test ] && find test -type f -name '*_test.dart' -print -quit | grep -q .; then flutter test; fi
+    if [ "$app" = "customer" ]; then
+      flutter build apk --release \
+        --dart-define=API_BASE_URL="$API" \
+        --dart-define=ADMOB_BANNER_ID="$ADMOB_BANNER_ID" \
+        --dart-define=ADMOB_NATIVE_ID="$ADMOB_NATIVE_ID" \
+        --dart-define=ADMOB_INTERSTITIAL_ID="$ADMOB_INTERSTITIAL_ID" \
+        --dart-define=ADMOB_REWARDED_ID="$ADMOB_REWARDED_ID" \
+        --dart-define=ADMOB_APP_OPEN_ID="$ADMOB_APP_OPEN_ID" \
+        --dart-define=ADMOB_REWARDED_INTERSTITIAL_ID="$ADMOB_REWARDED_INTERSTITIAL_ID" \
+        --obfuscate --split-debug-info="$DIST/symbols-$app"
+      flutter build appbundle --release \
+        --dart-define=API_BASE_URL="$API" \
+        --dart-define=ADMOB_BANNER_ID="$ADMOB_BANNER_ID" \
+        --dart-define=ADMOB_NATIVE_ID="$ADMOB_NATIVE_ID" \
+        --dart-define=ADMOB_INTERSTITIAL_ID="$ADMOB_INTERSTITIAL_ID" \
+        --dart-define=ADMOB_REWARDED_ID="$ADMOB_REWARDED_ID" \
+        --dart-define=ADMOB_APP_OPEN_ID="$ADMOB_APP_OPEN_ID" \
+        --dart-define=ADMOB_REWARDED_INTERSTITIAL_ID="$ADMOB_REWARDED_INTERSTITIAL_ID" \
+        --obfuscate --split-debug-info="$DIST/symbols-$app"
+    else
+      flutter build apk --release --dart-define=API_BASE_URL="$API" --obfuscate --split-debug-info="$DIST/symbols-$app"
+      flutter build appbundle --release --dart-define=API_BASE_URL="$API" --obfuscate --split-debug-info="$DIST/symbols-$app"
+    fi
+  )
   cp "$d/build/app/outputs/flutter-apk/app-release.apk" "$DIST/nearme-$app.apk"
   cp "$d/build/app/outputs/bundle/release/app-release.aab" "$DIST/nearme-$app.aab"
+  "$APK_SIGNER" verify --verbose "$DIST/nearme-$app.apk"
+  jarsigner -verify -certs "$DIST/nearme-$app.aab" >/dev/null
   [ -f "$d/build/app/outputs/mapping/release/mapping.txt" ] && cp "$d/build/app/outputs/mapping/release/mapping.txt" "$DIST/mapping-$app.txt" || true
 done
+
 (cd "$DIST" && sha256sum *.apk *.aab > SHA256SUMS.txt)
 echo "Artifacts in $DIST. Upload the .aab files to Play Console (Internal testing first)."

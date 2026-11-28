@@ -129,7 +129,7 @@ class _MorePageState extends State<MorePage> {
       (Icons.campaign_outlined, 'التسويق', () => go('مركز التسويق', MarketingPage(api: api, isOwner: _owner))),
       (Icons.celebration_outlined, 'المناسبات', () => go('', OccasionsPage(api: api), bare: true)),
       (Icons.view_quilt_outlined, 'محرر التطبيق', () => go('محرر التطبيق', BuilderPage(api: api))),
-      (Icons.ads_click, 'الإعلانات', () => go('', AdsPage(api: api), bare: true)),
+      if (_owner) (Icons.ads_click, 'الإعلانات', () => go('', AdsPage(api: api), bare: true)),
       (Icons.tune, 'أوزان التوافق', () => go('', WeightsPage(api: api), bare: true)),
       if (_owner) (Icons.rocket_launch_outlined, 'الإصدارات', () => go('', ReleasesPage(api: api), bare: true)),
       if (_owner) (Icons.backup_outlined, 'النسخ الاحتياطي', () => go('', BackupsPage(api: api), bare: true)),

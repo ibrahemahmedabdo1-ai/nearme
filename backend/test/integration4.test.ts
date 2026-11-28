@@ -22,6 +22,7 @@ test("chat media: scan fails closed, downloads limited to participants, GIF urls
   const g = (url: string) => call("conversations/[id]/messages", "POST", { token: a.token, params: { id }, body: { kind: "gif", body: url } });
   assert.equal((await g("https://media.giphy.com/media/x/giphy.gif")).status, 201);
   assert.equal((await g("https://evil.example/x.gif")).status, 422); assert.equal((await g("http://media.giphy.com/x.gif")).status, 422); assert.equal((await g("javascript:alert(1)")).status, 422);
+  assert.equal((await call("conversations/[id]/messages", "POST", { token: a.token, params: { id }, body: { kind: "location", body: "30.0444,31.2357" } })).status, 422); // location sharing is not part of Near Me chat
   assert.equal((await call("gifs", "GET", { token: a.token })).status, 501);
 });
 

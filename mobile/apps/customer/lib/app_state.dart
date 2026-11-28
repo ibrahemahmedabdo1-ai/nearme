@@ -37,12 +37,12 @@ class AppState extends ChangeNotifier {
 
   Future<void> register({
     required String email, required String password, required String name, required DateTime birth, required String installId,
-    required String gender, required String bio, required List<String> interests, required int minAge, required int maxAge,
+    required String gender, required String bio, required List<String> interests, required int minAge, required int maxAge, List<String> preferredGenders = const [],
   }) async {
     final b = '${birth.year.toString().padLeft(4, '0')}-${birth.month.toString().padLeft(2, '0')}-${birth.day.toString().padLeft(2, '0')}';
     final t = await api.post('/api/auth/register', {
       'email': email, 'password': password, 'display_name': name, 'birthdate': b, 'install_id': installId, 'accept_terms': true,
-      'gender': gender, 'bio': bio, 'interests': interests, 'min_age': minAge, 'max_age': maxAge,
+      'gender': gender, 'bio': bio, 'interests': interests, 'min_age': minAge, 'max_age': maxAge, 'genders': preferredGenders,
     });
     await api.saveTokens(t);
     signedIn = true;
