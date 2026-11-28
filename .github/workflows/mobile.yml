@@ -44,10 +44,6 @@ jobs:
 
       - name: Validate backend URL
         run: |
-          if [ -z "$API_BASE_URL" ]; then
-            echo "::error::Set the GitHub Actions repository variable API_BASE_URL to the deployed Near Me backend HTTPS URL."
-            exit 1
-          fi
           case "$API_BASE_URL" in
             https://*) ;;
             *) echo "::error::API_BASE_URL must use HTTPS."; exit 1 ;;
@@ -57,9 +53,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          API_BASE_URL="${API_BASE_URL%/}"
-          echo "API_BASE_URL=$API_BASE_URL" >> "$GITHUB_ENV"
-          curl --fail --silent --show-error --max-time 25 "$API_BASE_URL/api/health"
+          curl --fail --silent --show-error --max-time 25 "${API_BASE_URL%/}/api/health"
 
       - name: Build Customer APK
         run: |
@@ -101,7 +95,85 @@ jobs:
           retention-days: 30
 
   release-signed:
-    if: false
     runs-on: ubuntu-latest
+    env:
+      API_BASE_URL: https://nearme-backend-otpprovider.vercel.app
+      ADMOB_APP_ID: ca-app-pub-7996028022546373~2159885081
+      ADMOB_BANNER_ID: ca-app-pub-7996028022546373/7029068384
+      ADMOB_NATIVE_ID: ca-app-pub-7996028022546373/2898251681
+      ADMOB_INTERSTITIAL_ID: ca-app-pub-7996028022546373/3893824494
+      ADMOB_REWARDED_ID: ca-app-pub-7996028022546373/6328416147
+      ADMOB_APP_OPEN_ID: ca-app-pub-7996028022546373/3668407870
+      ADMOB_REWARDED_INTERSTITIAL_ID: ca-app-pub-7996028022546373/4981489542
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
-      - run: echo "Release signing is intentionally disabled until the Owner configures encrypted Android signing secrets."
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Validate signing secrets and stage the upload key
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing repository Actions secret: $name"
+              exit 1
+            fi
+          done
+          KEY_DIR="$RUNNER_TEMP/nearme-keys"
+          mkdir -p "$KEY_DIR"
+          chmod 700 "$KEY_DIR"
+          KEYSTORE="$RUNNER_TEMP/nearme-upload.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+          chmod 600 "$KEYSTORE"
+          keytool -list -keystore "$KEYSTORE" -alias "$ANDROID_KEY_ALIAS" -storepass "$ANDROID_KEYSTORE_PASSWORD" >/dev/null
+          for app in customer admin support; do
+            cat > "$KEY_DIR/$app.key.properties" <<EOF
+          storeFile=$KEYSTORE
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
+          EOF
+            chmod 600 "$KEY_DIR/$app.key.properties"
+          done
+          echo "ANDROID_KEYS_DIR=$KEY_DIR" >> "$GITHUB_ENV"
+
+      - name: Prepare Android projects
+        run: bash ./scripts/bootstrap-flutter.sh
+
+      - name: Verify production AdMob identifiers
+        run: bash ./scripts/verify-release-admob.sh
+
+      - name: Verify backend endpoint
+        shell: bash
+        run: curl --fail --silent --show-error --max-time 25 "${API_BASE_URL%/}/api/health"
+
+      - name: Build and verify signed APK and AAB for all three apps
+        run: bash ./scripts/build-all.sh
+
+      - name: Upload signed release artifacts and debug symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: nearme-signed-apk-aab-and-symbols
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove temporary signing material
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$RUNNER_TEMP/nearme-upload.jks"
+          rm -rf "$RUNNER_TEMP/nearme-keys"
