@@ -113,7 +113,9 @@ test("introduction requests: 3-message limit across types, no bypass, accept/rej
   const open = await call("conversations", "POST", { token: a.token, body: { to_user: b.id } }); assert.equal(open.status, 201);
   const id = open.body.conversation_id;
   const send = (tok: string, kind: string, body = "hi") => call("conversations/[id]/messages", "POST", { token: tok, params: { id }, body: { kind, body } });
-  assert.equal((await send(a.token, "text")).status, 201); assert.equal((await send(a.token, "gif", "gif_wave")).status, 201); assert.equal((await send(a.token, "sticker", "stk_smile")).status, 201);
+  // Use payloads accepted by the real message API: GIF URLs must be HTTPS giphy.com URLs, and stickers must exist in the active catalog.
+  sql(`INSERT INTO cosmetic_items(id,kind,name_en,name_ar,active) VALUES ('test_intro_sticker','sticker','Test intro sticker','Test sticker',true) ON CONFLICT (id) DO UPDATE SET kind='sticker',active=true`);
+  assert.equal((await send(a.token, "text")).status, 201); assert.equal((await send(a.token, "gif", "https://giphy.com/gifs/test-wave")).status, 201); assert.equal((await send(a.token, "sticker", "test_intro_sticker")).status, 201);
   assert.equal((await send(a.token, "text")).body.error, "intro_limit_reached");
   const again = await call("conversations", "POST", { token: a.token, body: { to_user: b.id } }); assert.equal(again.body.existing, true); assert.equal(again.body.conversation_id, id);   // cannot open another request to bypass
   assert.equal((await call("conversations/[id]/respond", "POST", { token: a.token, params: { id }, body: { accept: true } })).status, 404);   // initiator cannot accept own request
