@@ -67,4 +67,25 @@ if app == "customer":
             t = t.replace("import io.flutter.embedding.android.FlutterActivity", "import android.os.Bundle\nimport android.view.WindowManager\nimport io.flutter.embedding.android.FlutterActivity")
             t = re.sub(r"class MainActivity\s*:\s*FlutterActivity\(\)\s*\{?\s*\}?", "class MainActivity : FlutterActivity() {\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)\n    }\n}", t)
             f.write_text(t)
+
+# Admin and Support embed the shared support module, whose Android crypto
+# dependency references these annotation types during R8 shrinking. Make the
+# annotation artifacts explicit so release minification can resolve them.
+if app in ("admin", "support"):
+    if kts:
+        deps = """\ndependencies {
+    implementation("com.google.errorprone:error_prone_annotations:2.36.0")
+    implementation("com.google.code.findbugs:jsr305:3.0.2")
+}
+"""
+    else:
+        deps = """\ndependencies {
+    implementation 'com.google.errorprone:error_prone_annotations:2.36.0'
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+}
+"""
+    if "error_prone_annotations" not in s:
+        s += deps
+        p.write_text(s)
+
 print(f"patched {app}")
