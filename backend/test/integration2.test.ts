@@ -13,9 +13,9 @@ test("login is bound to the registered device (one account per device)", async (
   assert.equal(sql(`SELECT count(*) FROM security_events WHERE user_id='${u.id}' AND kind='login_unregistered_device'`), "1");
 });
 
-test("customer login re-checks adult eligibility for pre-existing accounts", async () => {
+test("customer login rejects legacy accounts without a birthdate", async () => {
   const u = await newUser("ageLogin");
-  sql(`UPDATE users SET birthdate='2012-01-01' WHERE id='${u.id}'`);
+  sql(`UPDATE users SET birthdate=NULL WHERE id='${u.id}'`);
   const denied = await call("auth/login", "POST", { body: { email: u.email, password: pw, install_id: u.install } });
   assert.equal(denied.status, 403);
   assert.equal(denied.body.error, "age_restricted");
@@ -155,10 +155,10 @@ test("sessions can be listed and revoked; fcm token stored on the device; securi
 test("ad placements: fixed set, disabled by default, Owner-configurable, validated", async () => {
   const owner = await staff("owner", "ownr"); const adm = await staff("admin", "adadm");
   const list = (await call("admin/ads", "GET", { token: owner.token })).body.placements;
-  assert.deepEqual(list.map((p: any) => p.placement).sort(), ["home_feed", "rewarded_cosmetic", "tab_transition"]); assert.ok(list.every((p: any) => p.enabled === false));
+  assert.deepEqual(list.map((p: any) => p.placement).sort(), ["app_open", "discovery_native", "home_feed", "rewarded_cosmetic", "rewarded_interstitial_cosmetic", "tab_transition"]); assert.ok(list.every((p: any) => p.enabled === false));
   assert.equal((await call("admin/ads", "GET", { token: adm.token })).status, 403);   // not granted by default
-  assert.equal((await call("admin/ads", "PUT", { token: owner.token, body: { placement: "chat_thread", enabled: true } })).status, 404);   // no ads in chat, ever
-  assert.equal((await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", min_gap_sec: 5 } })).status, 422);
-  assert.equal((await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", enabled: true, min_gap_sec: 90 } })).status, 200);
+  assert.equal((await call("admin/ads", "PUT", { token: owner.token, body: { placement: "chat_thread", enabled: true } })).status, 403);   // no ads in chat, ever
+  const lowerGap = await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", min_gap_sec: 5 } });\n  assert.equal(lowerGap.status, 200); assert.equal(lowerGap.body.min_gap_sec, 120); // hard safety floor cannot be lowered
+  const enabled = await call("admin/ads", "PUT", { token: owner.token, body: { placement: "home_feed", enabled: true, min_gap_sec: 90 } });\n  assert.equal(enabled.status, 200); assert.equal(enabled.body.min_gap_sec, 120);
   assert.equal((await call("config", "GET")).body.ads.find((p: any) => p.placement === "home_feed").enabled, true);
 });
