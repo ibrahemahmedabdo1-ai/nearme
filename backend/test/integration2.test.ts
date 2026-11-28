@@ -13,12 +13,17 @@ test("login is bound to the registered device (one account per device)", async (
   assert.equal(sql(`SELECT count(*) FROM security_events WHERE user_id='${u.id}' AND kind='login_unregistered_device'`), "1");
 });
 
-test("customer login rejects legacy accounts without a birthdate", async () => {
+test("customer login re-checks adult eligibility for legacy pre-existing accounts", async () => {
   const u = await newUser("ageLogin");
-  sql(`UPDATE users SET birthdate=NULL WHERE id='${u.id}'`);
-  const denied = await call("auth/login", "POST", { body: { email: u.email, password: pw, install_id: u.install } });
-  assert.equal(denied.status, 403);
-  assert.equal(denied.body.error, "age_restricted");
+  // Simulate a legacy row that predates the database age constraint. Restore the schema/data in finally.
+  sql(`ALTER TABLE users ALTER COLUMN birthdate DROP NOT NULL; ALTER TABLE users DROP CONSTRAINT users_birthdate_check; UPDATE users SET birthdate='2012-01-01' WHERE id='${u.id}'`);
+  try {
+    const denied = await call("auth/login", "POST", { body: { email: u.email, password: pw, install_id: u.install } });
+    assert.equal(denied.status, 403);
+    assert.equal(denied.body.error, "age_restricted");
+  } finally {
+    sql(`UPDATE users SET birthdate='1995-01-01' WHERE id='${u.id}'; ALTER TABLE users ADD CONSTRAINT users_birthdate_check CHECK (birthdate <= (CURRENT_DATE - INTERVAL '18 years')); ALTER TABLE users ALTER COLUMN birthdate SET NOT NULL`);
+  }
 });
 
 test("profile edit, interests, hide, no secrets in /me", async () => {
