@@ -6,6 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 API="${API_BASE_URL:?set API_BASE_URL=https://your-production-backend.example}"
 DIST="$ROOT/dist"
 KEY_DIR="${ANDROID_KEYS_DIR:-$HOME/.nearme-keys}"
+ANDROID_SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
 mkdir -p "$DIST"
 STAGE_DIR="$(mktemp -d)"
 cleanup() {
@@ -25,6 +26,17 @@ case "$API" in
   https://*) ;;
   *) echo "::error::API_BASE_URL must use HTTPS for production builds."; exit 1 ;;
 esac
+
+# Resolve apksigner from the Android SDK; it is commonly not on PATH in CI.
+APK_SIGNER="$(command -v apksigner || true)"
+if [ -z "$APK_SIGNER" ] && [ -n "$ANDROID_SDK" ] && [ -d "$ANDROID_SDK/build-tools" ]; then
+  APK_SIGNER="$(find "$ANDROID_SDK/build-tools" -mindepth 2 -maxdepth 2 -type f -name apksigner -print 2>/dev/null | sort -V | tail -n 1)"
+fi
+if [ -z "$APK_SIGNER" ] || [ ! -x "$APK_SIGNER" ]; then
+  echo "::error::Android build-tools apksigner was not found. SDK: ${ANDROID_SDK:-unset}"
+  exit 1
+fi
+echo "Using APK signature verifier: $APK_SIGNER"
 
 # Do not allow Google's test app/ad unit IDs into a production artifact.
 bash "$ROOT/scripts/verify-release-admob.sh"
@@ -74,8 +86,7 @@ for app in customer admin support; do
   )
   cp "$d/build/app/outputs/flutter-apk/app-release.apk" "$DIST/nearme-$app.apk"
   cp "$d/build/app/outputs/bundle/release/app-release.aab" "$DIST/nearme-$app.aab"
-  command -v apksigner >/dev/null || { echo "::error::Android build-tools apksigner is required to verify APK signatures."; exit 1; }
-  apksigner verify --verbose "$DIST/nearme-$app.apk"
+  "$APK_SIGNER" verify --verbose "$DIST/nearme-$app.apk"
   jarsigner -verify -certs "$DIST/nearme-$app.aab" >/dev/null
   [ -f "$d/build/app/outputs/mapping/release/mapping.txt" ] && cp "$d/build/app/outputs/mapping/release/mapping.txt" "$DIST/mapping-$app.txt" || true
 done
